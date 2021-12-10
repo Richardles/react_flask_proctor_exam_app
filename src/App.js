@@ -21,8 +21,8 @@ function App() {
         <Route path="/home/backup" exact>
           <Home data="backup"/>
         </Route>
-        <Route path="/home/download_case" exact>
-          <Home data="download case"/>
+        <Route path="/home/manage_case" exact>
+          <Home data="manage case"/>
         </Route>
       </Switch>
     </Router>

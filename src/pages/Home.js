@@ -10,12 +10,13 @@ import {
   XIcon,
 } from '@heroicons/react/outline'
 import Schedule from '../components/Schedule'
+import CaseUpload from '../components/CaseUpload'
 
 const Home = (data) => {
     const navigation = [
         { name: 'schedule', href: '/home/schedule', icon: HomeIcon, current: true },
         { name: 'backup', href: '/home/backup', icon: UsersIcon, current: false },
-        { name: 'download case', href: '/home/download_case', icon: FolderIcon, current: false },
+        { name: 'manage case', href: '/home/manage_case', icon: FolderIcon, current: false },
       ]
 
     const [user, setUser] = useState({});
@@ -32,7 +33,7 @@ const Home = (data) => {
         navigation[0].current = true;
       }else if(data.data === "backup"){
         navigation[1].current = true;
-      }else if(data.data === "download case"){
+      }else if(data.data === "manage case"){
         navigation[2].current = true;
       }
     }
@@ -40,11 +41,10 @@ const Home = (data) => {
 
     useEffect(() => {
         fetch('/get-session').then(res => res.json()).then(data => {
-          if(data.User == ""){
+          if(data == ""){
             window.location.href = "/login"
           }
-          setUser(data.User)
-
+          setUser(data)
         })
         fetch('/get-student-schedule')
     }, [])
@@ -185,7 +185,7 @@ const Home = (data) => {
                       />
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm font-medium text-white">{user.Name}</p>
+                      <p className="text-sm font-medium text-white">{user.Username}</p>
                       <p className="text-xs font-medium text-gray-300 group-hover:text-gray-200">View profile</p>
                     </div>
                   </div>
@@ -212,8 +212,7 @@ const Home = (data) => {
               <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
                 {/* Replace with your content */}
                 <div className="py-4">
-                  <Schedule/>
-                  <Schedule/>
+                  <CaseUpload/>
                 </div>
                 {/* /End replace */}
               </div>
