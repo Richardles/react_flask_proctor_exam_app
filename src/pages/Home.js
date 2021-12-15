@@ -212,7 +212,10 @@ const Home = (data) => {
               <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
                 {/* Replace with your content */}
                 <div className="py-4">
-                  <CaseUpload/>
+                  {/* <CaseUpload/> */}
+                  <Schedule/>
+                  <Schedule/>
+                  <Schedule/>
                 </div>
                 {/* /End replace */}
               </div>
