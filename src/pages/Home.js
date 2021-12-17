@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/outline'
 import Schedule from '../components/Schedule'
 import CaseUpload from '../components/CaseUpload'
+import ClassDescription from '../components/ClassDescription'
 
 const Home = (data) => {
     const navigation = [
@@ -20,10 +21,15 @@ const Home = (data) => {
       ]
 
     const [user, setUser] = useState({});
+    const [classTransactionDetail, setClassTransaction] = useState([]);
+    const [isFetchingClassTransaction, setFetchingClassTransaction] = useState(true);
 
     function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
     }
+
+    // const query = new URLSearchParams(useLocation().search);
+    // const classCourseId = query.get("q");
 
     function nav(){
       navigation.forEach(element => {
@@ -41,12 +47,28 @@ const Home = (data) => {
 
     useEffect(() => {
         fetch('/get-session').then(res => res.json()).then(data => {
-          if(data == ""){
+          if(data === ""){
             window.location.href = "/login"
           }
           setUser(data)
         })
-        fetch('/get-student-schedule')
+
+        if(localStorage.getItem('activeClass') == null){
+          console.log('active class is empty');
+          fetch('/get-active-class').then(res => res.json()).then(data => {
+            if(data === ""){
+              window.location.href = "/login"
+            }
+            setClassTransaction(data)
+            setFetchingClassTransaction(false)
+            localStorage.setItem('activeClass', JSON.stringify(data))
+          })
+        }else{
+          console.log('active class is not empty');
+          setClassTransaction(JSON.parse(localStorage.getItem('activeClass')))
+          setFetchingClassTransaction(false)
+        }
+
     }, [])
 
     const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -212,10 +234,21 @@ const Home = (data) => {
               <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
                 {/* Replace with your content */}
                 <div className="py-4">
-                  {/* <CaseUpload/> */}
-                  <Schedule/>
-                  <Schedule/>
-                  <Schedule/>
+                  {data.data === "schedule" ? 
+                  
+                  isFetchingClassTransaction ? 'Fetching Class Data'
+                  : classTransactionDetail?.map(detail=>{
+                      return (
+                        <Schedule classData={detail} key={detail.Id}/>
+                        )
+                    })
+
+                  : data.data === "class view" ? 
+                    <ClassDescription/>
+                  : data.data === "manage case" ? 'manage case'
+                  : "other"
+
+                  }
                 </div>
                 {/* /End replace */}
               </div>

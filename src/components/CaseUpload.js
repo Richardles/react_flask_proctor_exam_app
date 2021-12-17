@@ -21,8 +21,8 @@ const CaseUpload = () => {
     }
 
     return (
-        <div className="flex justify-center mt-8">
-            <div className="max-w-2xl rounded-lg shadow-xl bg-gray-50" style={{minWidth: "1000px"}}>
+        <div className="flex justify-center">
+            <div className="w-full">
                 <div className="m-4">
                     <label className="inline-block mb-2 text-gray-500">{!!(file) ? (progress < 100 ? `Uploading.. ${file.name}` : `${file.name} uploaded`) : 'File Upload'}</label>
                     <div className="flex items-center justify-center w-full">
@@ -42,13 +42,13 @@ const CaseUpload = () => {
                     </div>
                 </div>
 
-                <div className="mx-2 bg-gray-200 rounded-full">
+                <div className="mx-1 bg-gray-200 rounded-full">
                     <div className="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full" style={{width: `${progress}%`}}>{progress > 0 ? `${progress} %` : ''}</div>
                 </div>
 
-                <div className="flex justify-center p-2">
-                    <button className="w-full px-4 py-2 text-white bg-blue-500 rounded shadow-xl" onClick={uploadCase}>Upload</button>
-                </div>
+                {/* <div className="flex justify-center">
+                    <button className="w-full px-4 py-2 text-white bg-blue-500 rounded" onClick={uploadCase}>Upload</button>
+                </div> */}
             </div>
         </div>
     )
