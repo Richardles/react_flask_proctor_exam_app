@@ -10,10 +10,6 @@ from flask import request
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'exam_app_sunib'
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=5)
-
 
 API_BASE_URL = "https://laboratory.binus.ac.id/lapi/api/"
 MAIN_URL = "http://localhost:3000/"

@@ -1,6 +1,9 @@
 import React from 'react'
 import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
+import { Disclosure, Menu } from '@headlessui/react'
+// import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
+import Loader from "react-loader-spinner";
 
 import {
   FolderIcon,
@@ -24,6 +27,7 @@ const Home = (data) => {
     const [classTransactionDetail, setClassTransaction] = useState([]);
     const [isFetchingClassTransaction, setFetchingClassTransaction] = useState(true);
 
+    let viewLayout = 'py-4'
     function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
     }
@@ -37,10 +41,14 @@ const Home = (data) => {
       });
       if(data.data === "schedule"){
         navigation[0].current = true;
+        viewLayout = "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 my-5"
       }else if(data.data === "backup"){
         navigation[1].current = true;
       }else if(data.data === "manage case"){
         navigation[2].current = true;
+      }else if(data.data === "class view"){
+        navigation[2].current = true;
+        viewLayout = "py-4"
       }
     }
     nav();
@@ -200,11 +208,82 @@ const Home = (data) => {
                 <a href="#" className="flex-shrink-0 w-full group block">
                   <div className="flex items-center">
                     <div>
-                      <img
+                      {/* <img
                         className="inline-block h-9 w-9 rounded-full"
                         src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                         alt=""
-                      />
+                      /> */}
+                      <Menu as="div" className="ml-4 relative flex-shrink-0">
+                  {({ open }) => (
+                    <>
+                      <div>
+                        <Menu.Button className="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                          <span className="sr-only">Open user menu</span>
+                          <img
+                            className="h-8 w-8 rounded-full"
+                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                            alt=""
+                          />
+                        </Menu.Button>
+                      </div>
+                      <Transition
+                        show={open}
+                        as={Fragment}
+                        enter="transition ease-out duration-100"
+                        enterFrom="transform opacity-0 scale-95"
+                        enterTo="transform opacity-100 scale-100"
+                        leave="transition ease-in duration-75"
+                        leaveFrom="transform opacity-100 scale-100"
+                        leaveTo="transform opacity-0 scale-95"
+                      >
+                        <Menu.Items
+                          static
+                          className="origin-bottom-left absolute bottom-9 left-0 mb-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+                        >
+                          <Menu.Item>
+                            {({ active }) => (
+                              <a
+                                href="#"
+                                className={classNames(
+                                  active ? 'bg-gray-100' : '',
+                                  'block px-4 py-2 text-sm text-gray-700'
+                                )}
+                              >
+                                Your Profile
+                              </a>
+                            )}
+                          </Menu.Item>
+                          <Menu.Item>
+                            {({ active }) => (
+                              <a
+                                href="#"
+                                className={classNames(
+                                  active ? 'bg-gray-100' : '',
+                                  'block px-4 py-2 text-sm text-gray-700'
+                                )}
+                              >
+                                Settings
+                              </a>
+                            )}
+                          </Menu.Item>
+                          <Menu.Item>
+                            {({ active }) => (
+                              <a
+                                href="/login"
+                                className={classNames(
+                                  active ? 'bg-gray-100' : '',
+                                  'block px-4 py-2 text-sm text-gray-700'
+                                )}
+                              >
+                                Sign out
+                              </a>
+                            )}
+                          </Menu.Item>
+                        </Menu.Items>
+                      </Transition>
+                    </>
+                  )}
+                </Menu>
                     </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-white">{user.Username}</p>
@@ -229,27 +308,45 @@ const Home = (data) => {
           <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
             <div className="py-6">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h1 className="text-2xl font-semibold text-gray-900">{data.data}</h1>
+                <h1 className="text-2xl font-semibold text-gray-900 flex justify-center">{data.data}</h1>
               </div>
               <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
                 {/* Replace with your content */}
-                <div className="py-4">
+                {isFetchingClassTransaction && 
+                  <div class="flex h-screen justify-center">
+                    <Loader
+                        type="Rings"
+                        color="#0C99F2"
+                        height={80}
+                        width={80}
+                        radius={1000}
+                      />
+                  </div>
+                }
+                <ul className={viewLayout}>
                   {data.data === "schedule" ? 
-                  
-                  isFetchingClassTransaction ? 'Fetching Class Data'
-                  : classTransactionDetail?.map(detail=>{
-                      return (
+                  isFetchingClassTransaction ? '' :
+                  classTransactionDetail?.sort((a, b)=>a.CourseName.localeCompare(b.CourseName))
+                  .map(detail=>{
+                    return (
                         <Schedule classData={detail} key={detail.Id}/>
-                        )
-                    })
-
+                    )
+                  })
                   : data.data === "class view" ? 
                     <ClassDescription/>
-                  : data.data === "manage case" ? 'manage case'
-                  : "other"
-
+                  : data.data === "manage case" ?
+                  <div class="flex h-screen justify-center">
+                    <Loader
+                        type="Rings"
+                        color="#0C99F2"
+                        height={80}
+                        width={80}
+                        radius={5000000}
+                      />
+                  </div>
+                  : "backup"
                   }
-                </div>
+                </ul>
                 {/* /End replace */}
               </div>
             </div>

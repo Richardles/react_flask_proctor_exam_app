@@ -10,7 +10,8 @@ const StudentsBox = (props) => {
     return (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <ul className="divide-y divide-gray-200">
-                {students.map((student) => (
+                {students?.sort((a, b) =>a.Name.localeCompare(b.Name))
+                .map((student) => (
                 <li key={student.Number}>
                     <a href='#' className="block hover:bg-gray-50">
                     <div className="flex items-center px-4 py-4 sm:px-6">

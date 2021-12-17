@@ -5,12 +5,32 @@ import StudentsBox from './class_descriptions_components/StudentsBox';
 import UploadForm from './class_descriptions_components/UploadForm';
 import { PlusSmIcon } from '@heroicons/react/solid'
 import { Fragment, useState, useEffect, useRef } from 'react'
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
+
+const Alert = React.forwardRef(function Alert(props, ref) {
+    return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 
 const ClassDescription = () => {
 
     const [isFormOpen, setFormOpen] = useState(false);
     const [caseType, setCaseType] = useState({});
     const [uploaded, setUploaded] = useState();
+    const [openAlert, setOpenAlert] = React.useState(false);
+
+    const handleClick = () => {
+        setOpenAlert(true);
+    };
+
+    const handleClose = (event, reason) => {
+        if (reason === 'clickaway') {
+        return;
+        }
+
+        setOpenAlert(false);
+    };
+
     const assignmentBoxRefs = useRef([]);
     const finalExamBoxRefs = useRef([]);
     assignmentBoxRefs.current = [];
@@ -54,6 +74,7 @@ const ClassDescription = () => {
 
     useEffect(()=>{
         if(uploaded){
+            handleClick();
             for(var i=1; i <= assignments.length; i++){
                 console.log('uploaded :'+uploaded.Type);
                 console.log("assignment"+i);
@@ -237,8 +258,19 @@ const ClassDescription = () => {
                     <span className="px-3 bg-white text-lg font-medium text-gray-900">{currentClass.StudentList.length} students</span>
                 </div>
             </div>
+            
             <StudentsBox students = {currentClass.StudentList}/>
+
             {isFormOpen && <UploadForm formOpen={setFormOpen} setUploaded={setUploaded} classData={currentClass} caseType={caseType}/>}
+            <Snackbar open={openAlert} autoHideDuration={6000} onClose={handleClose}>
+                <Alert onClose={handleClose} severity="success" sx={{ width: '100%' }}>
+                {uploaded && `${uploaded.File.name} is Uploaded Successfully !`}
+                </Alert>
+            </Snackbar>
+            {/* <Alert severity="error">This is an error message!</Alert>
+            <Alert severity="warning">This is a warning message!</Alert>
+            <Alert severity="info">This is an information message!</Alert>
+            <Alert severity="success">This is a success message!</Alert> */}
         </div>
     );
 };
