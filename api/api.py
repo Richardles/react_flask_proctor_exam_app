@@ -33,7 +33,7 @@ def get_active_class():
     req_active_semester = requests.get(API_BASE_URL + "Semester/Active")
     semesterId = (json.loads(req_active_semester.text))["SemesterId"]
     req_assistant_jobs = requests.get(API_BASE_URL + "Schedule/GetJobsAssistant?mode=history&semesterId="+semesterId, headers=bearer_token)
-    req_coId = requests.get(API_BASE_URL + "Course/GetCourseOutlineInSemester?semesterId=" + semesterId, headers=bearer_token)
+    req_coId = requests.get(API_BASE_URL + "Course/GetCourseOutlineInSemester?semesterId="+semesterId, headers=bearer_token)
     
     allCourses = []
     for i in (json.loads(req_coId.text)):

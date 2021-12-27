@@ -4,7 +4,10 @@ import { IdentificationIcon }  from '@heroicons/react/outline'
 
 const StudentsBox = (props) => {
 
-  let students = props.students
+  let students = props.currentClass.StudentList
+  let currentClass = props.currentClass
+//   global.CurrentClass = currentClass;
+  let baseUrl = currentClass.CourseCode+'+'+currentClass.ClassName
   let imgPlaceholder = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
 
     return (
@@ -13,7 +16,7 @@ const StudentsBox = (props) => {
                 {students?.sort((a, b) =>a.Name.localeCompare(b.Name))
                 .map((student) => (
                 <li key={student.Number}>
-                    <a href='#' className="block hover:bg-gray-50">
+                    <a href={` ${baseUrl}/${student.Number} `} className="block hover:bg-gray-50">
                     <div className="flex items-center px-4 py-4 sm:px-6">
                         <div className="min-w-0 flex-1 flex items-center">
                         <div className="flex-shrink-0">

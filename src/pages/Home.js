@@ -4,7 +4,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import { Disclosure, Menu } from '@headlessui/react'
 // import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
 import Loader from "react-loader-spinner";
-
+import Clock from 'react-live-clock'
 import {
   FolderIcon,
   HomeIcon,
@@ -15,8 +15,10 @@ import {
 import Schedule from '../components/Schedule'
 import CaseUpload from '../components/CaseUpload'
 import ClassDescription from '../components/ClassDescription'
+import StudentDetail from '../components/StudentDetail'
 
 const Home = (data) => {
+
     const navigation = [
         { name: 'schedule', href: '/home/schedule', icon: HomeIcon, current: true },
         { name: 'backup', href: '/home/backup', icon: UsersIcon, current: false },
@@ -44,7 +46,7 @@ const Home = (data) => {
         viewLayout = "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 my-5"
       }else if(data.data === "backup"){
         navigation[1].current = true;
-      }else if(data.data === "manage case"){
+      }else if(data.data === "manage case" || data.data === "student view"){
         navigation[2].current = true;
       }else if(data.data === "class view"){
         navigation[2].current = true;
@@ -309,11 +311,16 @@ const Home = (data) => {
             <div className="py-6">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h1 className="text-2xl font-semibold text-gray-900 flex justify-center">{data.data}</h1>
+                <div className="flex justify-end">
+                  <span className="items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 shadow-md shadow-cyan-500/50">
+                    <Clock format={'HH:mm:ss'} ticking={true} timezone={'Asia/Jakarta'}/> WIB
+                  </span>
+                </div>
               </div>
               <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
                 {/* Replace with your content */}
                 {isFetchingClassTransaction && 
-                  <div class="flex h-screen justify-center">
+                  <div className="flex h-screen justify-center">
                     <Loader
                         type="Rings"
                         color="#0C99F2"
@@ -335,15 +342,20 @@ const Home = (data) => {
                   : data.data === "class view" ? 
                     <ClassDescription/>
                   : data.data === "manage case" ?
-                  <div class="flex h-screen justify-center">
-                    <Loader
-                        type="Rings"
-                        color="#0C99F2"
-                        height={80}
-                        width={80}
-                        radius={5000000}
-                      />
+                  <div>
+                    <div className="flex-col flex h-screen items-center">
+                      <Loader
+                          type="ThreeDots"
+                          color="#0C99F2"
+                          height={80}
+                          width={80}
+                          radius={5000000}
+                        />
+                        <div>Go to 'schedule' menu and pick a class</div>
+                    </div>
                   </div>
+                  : data.data === "student view" ?
+                    <StudentDetail/>
                   : "backup"
                   }
                 </ul>

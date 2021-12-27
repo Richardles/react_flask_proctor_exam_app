@@ -4,6 +4,11 @@ import Login from './pages/Login';
 import {Route, BrowserRouter as Router, Switch} from 'react-router-dom';
 import Home from './pages/Home'
 
+// App.get('/cors', (req, res) => {
+//   res.set('Access-Control-Allow-Origin', '*');
+//   res.send({ "msg": "This has CORS enabled 🎈" })
+// })
+
 function App() {
 
   // useEffect(() => {
@@ -11,6 +16,8 @@ function App() {
   //     setCurrentTime(data.time)
   //   }))
   // }, []);
+
+  
 
   return (
     <Router>
@@ -21,6 +28,9 @@ function App() {
         </Route>
         <Route path="/home/schedule/:classCourseId" exact>
           <Home data="class view"/>
+        </Route>
+        <Route path="/home/schedule/:classCourseId/:studentNumber" exact>
+          <Home data="student view"/>
         </Route>
         <Route path="/home/backup" exact>
           <Home data="backup"/>

@@ -7,10 +7,14 @@ import { PlusSmIcon } from '@heroicons/react/solid'
 import { Fragment, useState, useEffect, useRef } from 'react'
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
+import firebase from '../firebase'
+import Loader from "react-loader-spinner";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
+
+export var currentClass
 
 const ClassDescription = () => {
 
@@ -18,6 +22,7 @@ const ClassDescription = () => {
     const [caseType, setCaseType] = useState({});
     const [uploaded, setUploaded] = useState();
     const [openAlert, setOpenAlert] = React.useState(false);
+    const storage = firebase.storage();
 
     const handleClick = () => {
         setOpenAlert(true);
@@ -56,12 +61,11 @@ const ClassDescription = () => {
         }
     }
 
-    
-    let currentClass
+    var currentClass
     activeClass.forEach(c =>{
         if(c.ClassName === className && c.CourseCode === courseCode){
             currentClass = c;
-            console.log(currentClass)
+            sessionStorage.setItem('currentClass', JSON.stringify(currentClass));
         }
     })
     let assignments = currentClass.ExamSchedule.assignments
@@ -90,6 +94,51 @@ const ClassDescription = () => {
         }
     }, [uploaded])
 
+    let storageDirectory = '/2110/' + currentClass.CourseCode + '/' + currentClass.ClassName + '/'
+    function getAssignmentUploaded(caseType){
+        storage.ref()
+        .child(`${storageDirectory}/${caseType}/case/`).listAll()
+        .then(res => {
+            res.items.forEach(item =>{
+                let temp = {
+                    'Type': caseType,
+                    'Name': item.name,
+                    'File': item
+                }
+                for(var i=1; i <= assignments.length; i++){
+                    if(caseType === "assignment"+i && assignmentBoxRefs.current[i-1]){
+                        assignmentBoxRefs.current[i-1].innerHTML = temp.File.name
+                    }
+                }
+            })
+        })
+        .catch(err => {
+            console.log(err);
+        })
+    }
+
+    function getFinalExamUploaded(caseType){
+        storage.ref()
+        .child(`${storageDirectory}/${caseType}/case/`).listAll()
+        .then(res => {
+            res.items.forEach(item =>{
+                let temp = {
+                    'Type': caseType,
+                    'Name': item.name,
+                    'File': item
+                }
+                for(var i=1; i <= assignments.length; i++){
+                    if(caseType === "finalExam"+i && finalExamBoxRefs.current[i-1]){
+                        finalExamBoxRefs.current[i-1].innerHTML = temp.File.name
+                    }
+                }
+            })
+        })
+        .catch(err => {
+            console.log(err);
+        })
+    }
+
     function initAssignmentList(){
         if(assignments === null) assignments = [];
         let bgColor = "white"
@@ -111,6 +160,28 @@ const ClassDescription = () => {
             );
         }
     }
+
+    function initAssignmentList(){
+        if(assignments === null) assignments = [];
+        let bgColor = "white"
+        for (var i = 1; i <= assignments.length; i++) {
+            if (i%2 == 0) bgColor = "gray-50"
+            asgList.push(
+                <div className={`bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
+                    <dt className="text-sm font-medium text-gray-500">Assignment {i}</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{(new Date(assignments[i-1].Date)).toDateString()}</dd>
+                </div>
+            );
+        }
+        if(assignments.length === 0){
+            asgList.push(
+                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6" key={0}>
+                    <dt className="text-sm font-medium text-gray-500">Assignment</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">-</dd>
+                </div>
+            );
+        }
+    }
     
     function initFinalExamList(){
         if(finalExams == []) return;
@@ -118,7 +189,7 @@ const ClassDescription = () => {
         for (let i = 1; i <= finalExams.length; i++) {
             if (i%2 == 0) bgColor = "gray-50"
             finalExamList.push(
-                <div className={`bg-${bgColor}-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
+                <div className={`bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
                     <dt className="text-sm font-medium text-gray-500">Final Exam {i}</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{(new Date(finalExams[i-1].Date)).toDateString()}</dd>
                 </div>
@@ -177,6 +248,7 @@ const ClassDescription = () => {
                     </dd>
                 </div>
             );
+            getAssignmentUploaded('assignment'+i)
         }
     }
 
@@ -203,6 +275,7 @@ const ClassDescription = () => {
                     </dd>
                 </div>
             );
+            getFinalExamUploaded('finalExam'+i);
         }
     }
 
@@ -259,7 +332,7 @@ const ClassDescription = () => {
                 </div>
             </div>
             
-            <StudentsBox students = {currentClass.StudentList}/>
+            <StudentsBox currentClass = {currentClass}/>
 
             {isFormOpen && <UploadForm formOpen={setFormOpen} setUploaded={setUploaded} classData={currentClass} caseType={caseType}/>}
             <Snackbar open={openAlert} autoHideDuration={6000} onClose={handleClose}>
@@ -275,4 +348,4 @@ const ClassDescription = () => {
     );
 };
 
-export default ClassDescription;
+export default ClassDescription
