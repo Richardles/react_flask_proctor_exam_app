@@ -47,8 +47,19 @@ const UploadForm = (props) => {
                         }
                         props.setUploaded(temp)
                     setGrayOpacity(500)
-                }
-            })
+                    }
+                })
+        
+        fetch('/insert-exam-case-to-database',{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(storageDirectory+'/'+file.name)
+        }).then(res => res.json()).then((data) => {
+            console.log(data);
+        })
     }
 
     function putFile(e){

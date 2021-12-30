@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams } from "react-router-dom";
 import { Fragment, useState, useEffect } from 'react'
+import { Dialog, Transition } from '@headlessui/react'
 import {
     ArrowNarrowLeftIcon,
     CheckIcon,
@@ -11,7 +12,9 @@ import {
     ThumbUpIcon,
     UserIcon,
     InformationCircleIcon,
-    ExclamationIcon
+    ExclamationIcon,
+    XIcon,
+    LinkIcon
 } from '@heroicons/react/solid'
 import Loader from "react-loader-spinner";
 import firebase from '../firebase'
@@ -20,7 +23,13 @@ const StudentDetail = () => {
 
     let currentClass = JSON.parse(sessionStorage.getItem('currentClass'));
     const [studentLog, setStudentLog] = useState([])
+    const [pictureId, setPictureId] = useState()
+    const [choosenLog, setChoosenLog] = useState([])
+    const [backupLink, setBackupLink] = useState([])
+    const [isLogViewable, setIsLogViewable] = useState(false);
+    const [logList, setLogList] = useState([])
     const [isFetchingLog, setIsFetchingLog] = useState(true)
+    const [open, setOpen] = useState(false)
     const params = useParams()
     const currentTime = new Date();
     const storage = firebase.storage();
@@ -77,96 +86,173 @@ const StudentDetail = () => {
     currentClass.StudentList.forEach(s => {
         if(s.Number === studentNumber){
             student = s
+            
+        fetch("https://laboratory.binus.ac.id/lapi/api/Account/GetThumbnail?id=" + student.PictureId).then(res => res.blob()
+            ).then(data => {
+                const imageObjectURL = URL.createObjectURL(data)
+                setPictureId(imageObjectURL)
+            })
         }
     })
+
     function classNames(...classes) {
         return classes.filter(Boolean).join(' ')
     }
     
+    function getDateAndTime(log){
+        let name = log.name
+        name = name.split(' ')
+        let date = name[0].split('_')[2]
+        date = new Date(date)
+        let time = name[1].split('.')[0]
+        time = time.split('_')
+        date.setHours(time[0], time[1], time[2])
+        let temp = {
+            date: date,
+            time: date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds()
+        }
+        // console.log(temp.date.toLocaleTimeString());
+        return temp;
+    }
+
     useEffect(() => {
         let storageDirectory = '/2110/' + currentClass.CourseCode + '/' + currentClass.ClassName + '/'
-            storage.ref(`${storageDirectory}`).listAll().then((res) => {
-                res.prefixes.forEach((exam) => {
-                    storage.ref()
-                    .child(`${storageDirectory}/${exam.name}/log/normal_log/`).listAll()
-                    .then(res => {
-                        setIsFetchingLog(false)
-                        res.items.forEach(item =>{
-                            item.getDownloadURL().then(url =>{
-                                console.log(item.name);
-                                if(item.name.includes(student.Number)){
-                                    setIsFetchingLog(true)
-                                    fetch('/get-student-log',{
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'Accept': 'application/json'
-                                        },
-                                        body: JSON.stringify(url)
-                                    }).then(res => res.json()).then(data=>{
-                                        setIsFetchingLog(false)
-                                        let key = 1;
-                                        data.forEach(item =>{
-                                            let temp = {
-                                                id: key,
-                                                content: item,
-                                                type: eventTypes.information,
-                                                examType: examTypes[exam.name],
-                                                logType: 'Normal Log'
-                                            }
-                                            setStudentLog(studentLog => [...studentLog, temp])
-                                            key+=1;
-                                        })
+        let key = 0;
+        storage.ref(`${storageDirectory}`).listAll().then((res) => {
+            res.prefixes.forEach((exam) => {
+                storage.ref()
+                .child(`${storageDirectory}/${exam.name}/log/normal_log/`).listAll()
+                .then(res => {
+                    res.items.forEach(item =>{
+                        if(item.name.includes(student.Number)){
+                            let temp = {
+                                id: key,
+                                content: item.name,
+                                type: eventTypes.information,
+                                examType: examTypes[exam.name],
+                                logType: 'Normal Log',
+                                dateTime: getDateAndTime(item),
+                                detail: item
+                            }
+                            setLogList(logList => [...logList, temp])
+                        }
+                        item.getDownloadURL().then(url =>{
+                            if(item.name.includes(student.Number)){
+                                setIsFetchingLog(true)
+                                fetch('/get-student-log',{
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify(url)
+                                }).then(res => res.json()).then(data=>{
+                                    setIsFetchingLog(false)
+                                    setIsLogViewable(true)
+                                    data.forEach(appName =>{
+                                        let temp = {
+                                            id: key,
+                                            fileName: item.name,
+                                            content: appName,
+                                            type: eventTypes.information,
+                                            examType: examTypes[exam.name],
+                                            logType: 'Normal Log',
+                                            url: url
+                                        }
+                                        setStudentLog(studentLog => [...studentLog, temp])
+                                        key+=1;
                                     })
-                                }
-                            })
+                                })
+                            }
                         })
-                    })
-                    .catch(err => {
-                        console.log(err);
-                    })
-            
-                    storage.ref()
-                    .child(`${storageDirectory}/${exam.name}/log/sus_log/`).listAll()
-                    .then(res => {
-                        setIsFetchingLog(false)
-                        res.items.forEach(item =>{
-                            item.getDownloadURL().then(url =>{
-                                console.log(item.name);
-                                if(item.name.includes(student.Number)){
-                                    setIsFetchingLog(true)
-                                    fetch('/get-student-log',{
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'Accept': 'application/json'
-                                        },
-                                        body: JSON.stringify(url)
-                                    }).then(res => res.json()).then(data=>{
-                                        setIsFetchingLog(false)
-                                        let key = 1;
-                                        data.forEach(item =>{
-                                            let temp = {
-                                                id: key,
-                                                content: item,
-                                                type: eventTypes.suspected,
-                                                examType: examTypes[exam.name],
-                                                logType: 'Suspicious Log'
-                                            }
-                                            setStudentLog(studentLog => [...studentLog, temp])
-                                            key+=1;
-                                        })
-                                    })
-                                }
-                            })
-                        })
-                    })
-                    .catch(err => {
-                        console.log(err);
                     })
                 })
+                .catch(err => {
+                    console.log(err);
+                })
+        
+                storage.ref()
+                .child(`${storageDirectory}/${exam.name}/log/sus_log/`).listAll()
+                .then(res => {
+                    res.items.forEach(item =>{
+                        if(item.name.includes(student.Number)){
+                            let temp = {
+                                id: key,
+                                content: item.name,
+                                type: eventTypes.suspected,
+                                examType: examTypes[exam.name],
+                                logType: 'Suspicious Log',
+                                dateTime: getDateAndTime(item),
+                                detail: item
+                            }
+                            setLogList(logList => [...logList, temp])
+                        }
+                        item.getDownloadURL().then(url =>{
+                            if(item.name.includes(student.Number)){
+                                setIsFetchingLog(true)
+                                fetch('/get-student-log',{
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify(url)
+                                }).then(res => res.json()).then(data=>{
+                                    setIsFetchingLog(false)
+                                    setIsLogViewable(true)
+                                    data.forEach(appName =>{
+                                        let temp = {
+                                            id: key,
+                                            fileName: item.name,
+                                            content: appName,
+                                            type: eventTypes.suspected,
+                                            examType: examTypes[exam.name],
+                                            logType: 'Suspicious Log',
+                                            url: url
+                                        }
+                                        setStudentLog(studentLog => [...studentLog, temp])
+                                        key+=1;
+                                    })
+                                })
+                            }
+                        })
+                    })
+                })
+                .catch(err => {
+                    console.log(err);
+                })
             })
+        })
+
+        fetch("/get-student-backup-answer",{
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(currentClass.CourseCode+' '+currentClass.ClassName+' '+student.Number)
+        }).then(res => res.json()).then(data=>{
+            setBackupLink(data);
+            console.log(data);
+        })
     }, [])
+
+    function toggleLogModal(appLog){
+        setChoosenLog([])
+        setOpen(true);
+        let idx = 1;
+
+        studentLog.forEach(log =>{
+            if(appLog.content == log.fileName){
+                let temp = {
+                    key: idx,
+                    content: log.content
+                }
+                idx++;
+                setChoosenLog(choosenLog => [...choosenLog, temp])
+            }
+        })
+    }
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -177,8 +263,8 @@ const StudentDetail = () => {
                     <div className="flex-shrink-0">
                     <div className="relative">
                         <img
-                        className="h-16 w-16 rounded-full"
-                        src="https://images.unsplash.com/photo-1463453091185-61582044d556?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80"
+                        className="h-20 w-20 object-cover rounded-full"
+                        src={pictureId}
                         alt=""
                         />
                         <span className="absolute inset-0 shadow-inner rounded-full" aria-hidden="true" />
@@ -240,64 +326,116 @@ const StudentDetail = () => {
                             <dt className="text-sm font-medium text-gray-500">{activeExam ? `${activeExam.ExamType} Exam Date` : 'Exam Date'}</dt>
                             <dd className="mt-1 text-sm text-gray-900">{activeExam ? new Date(activeExam.ExamDetail.Date).toDateString() : '-'}</dd>
                             </div>
-                            {/* <div className="sm:col-span-2">
-                            <dt className="text-sm font-medium text-gray-500">About</dt>
+                            <div className="sm:col-span-2">
+                            <dt className="text-sm font-medium text-gray-500">Answer Backup Link</dt>
                             <dd className="mt-1 text-sm text-gray-900">
-                                Fugiat ipsum ipsum deserunt culpa aute sint do nostrud anim incididunt cillum culpa consequat.
-                                Excepteur qui ipsum aliquip consequat sint. Sit id mollit nulla mollit nostrud in ea officia
-                                proident. Irure nostrud pariatur mollit ad adipisicing reprehenderit deserunt qui eu.
+                                {backupLink?.map(link => (
+                                    <div className="sm:col-span-2">
+                                        <ul className="border border-gray-200 rounded-md divide-y divide-gray-200">
+                                            <li className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                            <div className="w-0 flex-1 flex items-center">
+                                                <LinkIcon className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
+                                                {/* <span >resume_back_end_developer.pdf</span> */}
+                                                <a href={link.backup_link} target="_blank" className="ml-2 flex-1 w-0 truncate hover:text-indigo-600">
+                                                    {link.backup_link}
+                                                </a>
+                                            </div>
+                                            <div className="ml-4 flex-shrink-0">
+                                                <p className="text-sm font-medium text-gray-500">{examTypes[link.exam_type]}</p>
+                                            </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                ))}
                             </dd>
-                            </div> */}
+                            </div>
                             
                         </dl>
                         </div>
                     </div>
                     </section>
-                    <section aria-labelledby="timeline-title" className="lg:col-start-3 lg:col-span-1">
-                        <div className="bg-white px-4 py-5 shadow sm:rounded-lg sm:px-6">
-                        <h2 id="timeline-title" className="text-lg font-medium text-gray-900">
-                            Student Log
-                        </h2>
 
                         {/* Activity Feed */}
-                        <div className="mt-6 flow-root">
-                            <ul className="-mb-8">
-                            {studentLog?.sort((a, b) =>b.logType.localeCompare(a.logType))
-                            .map((item, itemIdx) => (
-                                <li key={itemIdx}>
-                                <div className="relative pb-8">
-                                    {itemIdx !== studentLog.length - 1 ? (
-                                    <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
-                                    ) : null}
-                                    <div className="relative flex space-x-3">
-                                    <div>
+                        <div className="flex flex-col">
+                        <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                            <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                            <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Log Name
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Date
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Time
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Type
+                                    </th>
+                                    <th scope="col" className="relative px-6 py-3">
+                                        <span className="sr-only">Edit</span>
+                                    </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {logList?.map((log) => (
+                                    <tr key={log.url}>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
                                         <span
-                                        className={classNames(
-                                            item.type.bgColorClass,
-                                            'h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white'
-                                        )}
-                                        >
-                                        <item.type.icon className="w-5 h-5 text-white" aria-hidden="true" />
+                                            className={classNames(
+                                                log.type.bgColorClass,
+                                                'h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white'
+                                            )}
+                                            >
+                                            <log.type.icon className="w-5 h-5 text-white" aria-hidden="true"/>
                                         </span>
-                                    </div>
-                                    <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                        <div>
-                                        <p className="text-sm text-gray-500">
-                                            <a href="#" className="font-medium text-gray-900">
-                                            {item.content}
-                                            </a>
-                                            {' '}{item.logType}
-                                        </p>
+                                            
+                                            <div className="ml-4">
+                                            <div className="text-sm font-medium text-gray-900">{log.content}</div>
+                                            {/* <div className="text-sm text-gray-500">{log.content}</div> */}
+                                            </div>
                                         </div>
-                                        <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                                        <time dateTime={item.content}>{item.examType}</time>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                                </li>
-                            ))}
-                            </ul>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">{log.dateTime.date.toDateString()}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">{log.dateTime.date.toLocaleTimeString()}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">{log.examType}</div>
+                                            <div className="text-sm text-gray-500">{log.logType}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        {isLogViewable && 
+                                            <span className="cursor-pointer text-indigo-600 hover:text-indigo-900" onClick={() => toggleLogModal(log)}>
+                                                View
+                                            </span>
+                                        }
+                                        </td>
+                                    </tr>
+                                    ))}
+                                </tbody>
+                                </table>
+                            </div>
+                            </div>
+                        </div>
                         </div>
                         {
                             isFetchingLog ?
@@ -321,11 +459,98 @@ const StudentDetail = () => {
                             </div>
                             : ''
                         }
-                        </div>
-                    </section>
                     </div>
                 </div>
             </main>
+
+             <Transition.Root show={open} as={Fragment}>
+             <Dialog as="div" static className="fixed z-10 inset-0 overflow-y-auto" open={open} onClose={setOpen}>
+                 <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                 <Transition.Child
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+                </Transition.Child>
+
+                 {/* This element is to trick the browser into centering the modal contents. */}
+                 <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+                     &#8203;
+                 </span>
+                 <Transition.Child
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    enterTo="opacity-100 translate-y-0 sm:scale-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                    leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                >
+                    <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                    <div className="hidden sm:block absolute top-0 right-0 pt-4 pr-4">
+                        <button
+                        type="button"
+                        className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        onClick={() => setOpen(false)}
+                        >
+                        <span className="sr-only">Close</span>
+                        <XIcon className="h-6 w-6" aria-hidden="true" />
+                        </button>
+                    </div>
+                    <div className="sm:flex sm:items-start">
+                        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <ExclamationIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                        </div>
+                        <div className="w-10/12 mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                            Application Log
+                        </Dialog.Title>
+                        <div className="mt-2">
+
+                        <ul className="divide-y divide-gray-200">
+                            {choosenLog?.map((log) => (
+                                <li key={log.key} className="py-4 flex">
+                                <p className="text-sm text-gray-500">{log.key}</p>
+                                <div className="ml-3">
+                                    <p className="text-sm font-medium text-gray-900">{log.content}</p>
+                                </div>
+                                </li>
+                            ))}
+                        </ul>
+                            {/* {choosenLog?.map((log) => (
+                                    <p key={log.key} className="text-sm text-gray-500">
+                                        {log.content}
+                                    </p>
+                            ))} */}
+                        </div>
+                        </div>
+                    </div>
+                    {/* <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                        <button
+                        type="button"
+                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                        onClick={() => setOpen(false)}
+                        >
+                        Deactivate
+                        </button>
+                        <button
+                        type="button"
+                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                        onClick={() => setOpen(false)}
+                        >
+                        Cancel
+                        </button>
+                    </div> */}
+                    </div>
+                </Transition.Child>
+                </div>
+            </Dialog>
+            </Transition.Root>
         </div>
     );
 };

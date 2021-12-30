@@ -10,8 +10,16 @@ from flask import request
 import urllib.request
 from selenium import webdriver
 import webbrowser
+from flask_mysqldb import MySQL
 
 app = Flask(__name__)
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_DB'] = 'exam-app'
+app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+mysql = MySQL(app)
+
 app.config['SECRET_KEY'] = 'exam_app_sunib'
 
 API_BASE_URL = "https://laboratory.binus.ac.id/lapi/api/"
@@ -39,8 +47,46 @@ def get_student_log():
     filtered = []
     filtered = student_log_array[2:len(student_log_array)]
     
-    return jsonify(filtered)
+    return jsonify(filtered[:-1])
 
+@app.route('/get-student-backup-answer', methods=['POST'])
+def get_student_backup_answer():
+    data = request.json
+    data = data.split(' ')
+    cur = mysql.connection.cursor()
+    query = "SELECT * FROM answer_backup WHERE student_nim = '{}' AND course_code = '{}' AND class_code = '{}' AND semester_id = '{}'".format(data[2], data[0], data[1], '2110')
+    cur.execute(query)
+    data = cur.fetchall()
+    cur.close()
+    
+    print(data)
+    return jsonify(data)
+
+
+@app.route('/insert-exam-case-to-database', methods=["POST"])
+def upload_exam_case_to_database():
+    directory = request.json
+    if(directory is None):
+        return jsonify({'success': False})
+    
+    # /2110/COMP6122001/BD01/assignment1/case/exam_app.sql
+    directory = directory[1:]
+    directory = directory.split('/')
+    semesterId = directory[0]
+    courseCode = directory[1]
+    className = directory[2]
+    examType = directory[3]
+    caseName = directory[5]
+    
+    cur = mysql.connection.cursor()
+    query = "INSERT INTO exam_case VALUES('{}', '{}', '{}', '{}', '{}')".format(courseCode, semesterId, className, examType, caseName)
+    print(query)
+    cur.execute(query)
+    mysql.connection.commit()
+    cur.close()
+    # data = cur.fetchall()
+    
+    return jsonify({'success': True})
 
 @app.route('/download-exam-case', methods=['POST'])
 def download_exam_case():
