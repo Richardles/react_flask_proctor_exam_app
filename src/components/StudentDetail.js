@@ -10,19 +10,37 @@ import {
     SearchIcon,
     ThumbUpIcon,
     UserIcon,
+    InformationCircleIcon,
+    ExclamationIcon
 } from '@heroicons/react/solid'
+import Loader from "react-loader-spinner";
 import firebase from '../firebase'
-const cors = require('cors')
 
 const StudentDetail = () => {
 
     let currentClass = JSON.parse(sessionStorage.getItem('currentClass'));
+    const [studentLog, setStudentLog] = useState([])
+    const [isFetchingLog, setIsFetchingLog] = useState(true)
     const params = useParams()
     const currentTime = new Date();
     const storage = firebase.storage();
     let activeExam = null
     let studentNumber = params.studentNumber
     let student
+
+    const eventTypes = {
+        applied: { icon: UserIcon, bgColorClass: 'bg-gray-400' },
+        advanced: { icon: ThumbUpIcon, bgColorClass: 'bg-blue-500' },
+        completed: { icon: CheckIcon, bgColorClass: 'bg-green-500' },
+        information: { icon: InformationCircleIcon, bgColorClass: 'bg-gray-500' },
+        suspected: { icon: ExclamationIcon, bgColorClass: 'bg-yellow-500' },
+    }
+
+    const examTypes = {
+        'assignment1': 'Assignment 1',
+        'assignment2': 'Assignment 2',
+        'finalExam': 'Final Exam'
+    };
 
     function getCurrentExam(){
         if(currentClass.ExamSchedule.assignments !== null){
@@ -64,80 +82,91 @@ const StudentDetail = () => {
     function classNames(...classes) {
         return classes.filter(Boolean).join(' ')
     }
-
-    function getStudentLog(){
-        let storageDirectory = '/2110/' + 'COMP6232001' + '/' + 'BB04' + '/'
-        storage.ref()
-        .child(`${storageDirectory}/assignment1/log/normal_log/`).listAll()
-        .then(res => {
-            res.items.forEach(item =>{
-                // item.getDownloadURL().then(url =>{
-                //     console.log(url);
-                // })
-                item.getDownloadURL().then(url =>{
-                    console.log(url);
-                    // fetch(url).then(data=>{
-                    //     data.text().then(t=>{
-                    //         console.log(t);
-                    //     })
-                    // })
+    
+    useEffect(() => {
+        let storageDirectory = '/2110/' + currentClass.CourseCode + '/' + currentClass.ClassName + '/'
+            storage.ref(`${storageDirectory}`).listAll().then((res) => {
+                res.prefixes.forEach((exam) => {
+                    storage.ref()
+                    .child(`${storageDirectory}/${exam.name}/log/normal_log/`).listAll()
+                    .then(res => {
+                        setIsFetchingLog(false)
+                        res.items.forEach(item =>{
+                            item.getDownloadURL().then(url =>{
+                                console.log(item.name);
+                                if(item.name.includes(student.Number)){
+                                    setIsFetchingLog(true)
+                                    fetch('/get-student-log',{
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json'
+                                        },
+                                        body: JSON.stringify(url)
+                                    }).then(res => res.json()).then(data=>{
+                                        setIsFetchingLog(false)
+                                        let key = 1;
+                                        data.forEach(item =>{
+                                            let temp = {
+                                                id: key,
+                                                content: item,
+                                                type: eventTypes.information,
+                                                examType: examTypes[exam.name],
+                                                logType: 'Normal Log'
+                                            }
+                                            setStudentLog(studentLog => [...studentLog, temp])
+                                            key+=1;
+                                        })
+                                    })
+                                }
+                            })
+                        })
+                    })
+                    .catch(err => {
+                        console.log(err);
+                    })
+            
+                    storage.ref()
+                    .child(`${storageDirectory}/${exam.name}/log/sus_log/`).listAll()
+                    .then(res => {
+                        setIsFetchingLog(false)
+                        res.items.forEach(item =>{
+                            item.getDownloadURL().then(url =>{
+                                console.log(item.name);
+                                if(item.name.includes(student.Number)){
+                                    setIsFetchingLog(true)
+                                    fetch('/get-student-log',{
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json'
+                                        },
+                                        body: JSON.stringify(url)
+                                    }).then(res => res.json()).then(data=>{
+                                        setIsFetchingLog(false)
+                                        let key = 1;
+                                        data.forEach(item =>{
+                                            let temp = {
+                                                id: key,
+                                                content: item,
+                                                type: eventTypes.suspected,
+                                                examType: examTypes[exam.name],
+                                                logType: 'Suspicious Log'
+                                            }
+                                            setStudentLog(studentLog => [...studentLog, temp])
+                                            key+=1;
+                                        })
+                                    })
+                                }
+                            })
+                        })
+                    })
+                    .catch(err => {
+                        console.log(err);
+                    })
                 })
             })
-        })
-        .catch(err => {
-            console.log(err);
-        })
-    }
-
-    getStudentLog();
-
-    const eventTypes = {
-        applied: { icon: UserIcon, bgColorClass: 'bg-gray-400' },
-        advanced: { icon: ThumbUpIcon, bgColorClass: 'bg-blue-500' },
-        completed: { icon: CheckIcon, bgColorClass: 'bg-green-500' },
-      }
-    const timeline = [
-        {
-          id: 1,
-          type: eventTypes.applied,
-          content: 'Applied to',
-          target: 'Front End Developer',
-          date: 'Sep 20',
-          datetime: '2020-09-20',
-        },
-        {
-          id: 2,
-          type: eventTypes.advanced,
-          content: 'Advanced to phone screening by',
-          target: 'Bethany Blake',
-          date: 'Sep 22',
-          datetime: '2020-09-22',
-        },
-        {
-          id: 3,
-          type: eventTypes.completed,
-          content: 'Completed phone screening with',
-          target: 'Martha Gardner',
-          date: 'Sep 28',
-          datetime: '2020-09-28',
-        },
-        {
-          id: 4,
-          type: eventTypes.advanced,
-          content: 'Advanced to interview by',
-          target: 'Bethany Blake',
-          date: 'Sep 30',
-          datetime: '2020-09-30',
-        },
-        {
-          id: 5,
-          type: eventTypes.completed,
-          content: 'Completed interview with',
-          target: 'Katherine Snyder',
-          date: 'Oct 4',
-          datetime: '2020-10-04',
-        },
-      ]
+    }, [])
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -177,7 +206,7 @@ const StudentDetail = () => {
                     type="button"
                     className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
                     >
-                    Advance to offer
+                    Notify
                     </button>
                 </div>
                 </div>
@@ -211,14 +240,14 @@ const StudentDetail = () => {
                             <dt className="text-sm font-medium text-gray-500">{activeExam ? `${activeExam.ExamType} Exam Date` : 'Exam Date'}</dt>
                             <dd className="mt-1 text-sm text-gray-900">{activeExam ? new Date(activeExam.ExamDetail.Date).toDateString() : '-'}</dd>
                             </div>
-                            <div className="sm:col-span-2">
+                            {/* <div className="sm:col-span-2">
                             <dt className="text-sm font-medium text-gray-500">About</dt>
                             <dd className="mt-1 text-sm text-gray-900">
                                 Fugiat ipsum ipsum deserunt culpa aute sint do nostrud anim incididunt cillum culpa consequat.
                                 Excepteur qui ipsum aliquip consequat sint. Sit id mollit nulla mollit nostrud in ea officia
                                 proident. Irure nostrud pariatur mollit ad adipisicing reprehenderit deserunt qui eu.
                             </dd>
-                            </div>
+                            </div> */}
                             
                         </dl>
                         </div>
@@ -233,10 +262,11 @@ const StudentDetail = () => {
                         {/* Activity Feed */}
                         <div className="mt-6 flow-root">
                             <ul className="-mb-8">
-                            {timeline.map((item, itemIdx) => (
-                                <li key={item.id}>
+                            {studentLog?.sort((a, b) =>b.logType.localeCompare(a.logType))
+                            .map((item, itemIdx) => (
+                                <li key={itemIdx}>
                                 <div className="relative pb-8">
-                                    {itemIdx !== timeline.length - 1 ? (
+                                    {itemIdx !== studentLog.length - 1 ? (
                                     <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
                                     ) : null}
                                     <div className="relative flex space-x-3">
@@ -253,14 +283,14 @@ const StudentDetail = () => {
                                     <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                                         <div>
                                         <p className="text-sm text-gray-500">
-                                            {item.content}{' '}
                                             <a href="#" className="font-medium text-gray-900">
-                                            {item.target}
+                                            {item.content}
                                             </a>
+                                            {' '}{item.logType}
                                         </p>
                                         </div>
                                         <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                                        <time dateTime={item.datetime}>{item.date}</time>
+                                        <time dateTime={item.content}>{item.examType}</time>
                                         </div>
                                     </div>
                                     </div>
@@ -269,14 +299,28 @@ const StudentDetail = () => {
                             ))}
                             </ul>
                         </div>
-                        <div className="mt-6 flex flex-col justify-stretch">
-                            <button
-                            type="button"
-                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                            Advance to offer
-                            </button>
-                        </div>
+                        {
+                            isFetchingLog ?
+                                <div className="mt-6 flex flex-col justify-stretch items-center">
+                                    <Loader
+                                    type="ThreeDots"
+                                    color="#0C99F2"
+                                    height={40}
+                                    width={40}
+                                    radius={5000000}
+                                    />
+                                </div>
+                            : studentLog.length <= 0 ?
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                    <div className="w-full border-t border-gray-300" />
+                                </div>
+                                <div className="relative flex justify-center">
+                                    <span className="px-2 bg-white text-sm text-gray-500">Student log is empty</span>
+                                </div>
+                            </div>
+                            : ''
+                        }
                         </div>
                     </section>
                     </div>

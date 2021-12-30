@@ -7,6 +7,9 @@ from flask import jsonify
 from flask_session.__init__ import Session
 from datetime import timedelta
 from flask import request
+import urllib.request
+from selenium import webdriver
+import webbrowser
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'exam_app_sunib'
@@ -27,6 +30,33 @@ def get_sesion():
     if session['account'] is None:
         return ""
     return session['account']
+
+@app.route('/get-student-log', methods=['POST'])
+def get_student_log():
+    download_url = request.json
+    req_student_log = requests.get(download_url)
+    student_log_array = (req_student_log.text).replace('\r', '').split('\n')
+    filtered = []
+    filtered = student_log_array[2:len(student_log_array)]
+    
+    return jsonify(filtered)
+
+
+@app.route('/download-exam-case', methods=['POST'])
+def download_exam_case():
+    download_url = request.json
+    if download_url.find('/'):
+        fileName = download_url.rsplit('/', 1)[1]
+        fileName = (fileName.split('case%')[1]).split('?')
+        fileName = (fileName[0]).replace('%', ' ')[2:]
+        print(fileName)
+    exam_case = requests.get(download_url)
+    # open(fileName, 'wb').write(exam_case.content)
+    # testfile = urllib.request.URLopener()
+    # testfile.retrieve(download_url, fileName)
+    webbrowser.open(download_url)
+    
+    return jsonify(exam_case.text)
 
 @app.route('/get-active-class')
 def get_active_class():
@@ -109,7 +139,10 @@ def get_active_class():
     
     # for i in teachingClassWithStudentsDetails:
     #     print(i)
+    # print(json.dumps(teachingClassWithStudentsDetails))
+    # session["class_details"] = json.dumps(teachingClassWithStudentsDetails)
     return jsonify(teachingClassWithStudentsDetails)
+    # return session["class_details"]
 
 @app.route('/login', methods=['POST'])
 def get_user_by_username_password():

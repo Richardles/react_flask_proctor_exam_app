@@ -20,15 +20,14 @@ import StudentDetail from '../components/StudentDetail'
 const Home = (data) => {
 
     const navigation = [
-        { name: 'schedule', href: '/home/schedule', icon: HomeIcon, current: true },
-        { name: 'backup', href: '/home/backup', icon: UsersIcon, current: false },
-        { name: 'manage case', href: '/home/manage_case', icon: FolderIcon, current: false },
-      ]
+        { name: 'Schedule', href: '/home/schedule', icon: HomeIcon, current: true },
+        { name: 'Class View', href: '/home/class_view', icon: FolderIcon, current: false },
+    ]
 
     const [user, setUser] = useState({});
     const [classTransactionDetail, setClassTransaction] = useState([]);
     const [isFetchingClassTransaction, setFetchingClassTransaction] = useState(true);
-
+    let currentPage = ''
     let viewLayout = 'py-4'
     function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
@@ -43,13 +42,14 @@ const Home = (data) => {
       });
       if(data.data === "schedule"){
         navigation[0].current = true;
+        currentPage = navigation[0].name
         viewLayout = "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 my-5"
-      }else if(data.data === "backup"){
+      }else if(data.data === "manage class" || data.data === "student view"){
         navigation[1].current = true;
-      }else if(data.data === "manage case" || data.data === "student view"){
-        navigation[2].current = true;
+        currentPage = navigation[1].name
       }else if(data.data === "class view"){
-        navigation[2].current = true;
+        navigation[1].current = true;
+        currentPage = navigation[1].name
         viewLayout = "py-4"
       }
     }
@@ -58,7 +58,7 @@ const Home = (data) => {
     useEffect(() => {
         fetch('/get-session').then(res => res.json()).then(data => {
           if(data === ""){
-            window.location.href = "/login"
+            window.location.href = "/"
           }
           setUser(data)
         })
@@ -67,7 +67,7 @@ const Home = (data) => {
           console.log('active class is empty');
           fetch('/get-active-class').then(res => res.json()).then(data => {
             if(data === ""){
-              window.location.href = "/login"
+              window.location.href = "/"
             }
             setClassTransaction(data)
             setFetchingClassTransaction(false)
@@ -156,21 +156,61 @@ const Home = (data) => {
                   </nav>
                 </div>
                 <div className="flex-shrink-0 flex bg-gray-700 p-4">
-                  <a href="#" className="flex-shrink-0 group block">
-                    <div className="flex items-center">
+                <span className="flex-shrink-0 w-full group block">
+                  <div className="flex items-center">
+                    <div>
+                      <Menu as="div" className="ml-4 relative flex-shrink-0">
+                  {({ open }) => (
+                    <>
                       <div>
-                        <img
-                          className="inline-block h-10 w-10 rounded-full"
-                          src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                          alt=""
-                        />
+                        <Menu.Button className="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                          <span className="sr-only">Open user menu</span>
+                          <img
+                            className="h-8 w-8 rounded-full"
+                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                            alt=""
+                          />
+                        </Menu.Button>
                       </div>
-                      <div className="ml-3">
-                        <p className="text-base font-medium text-white">Tom Cook</p>
-                        <p className="text-sm font-medium text-gray-400 group-hover:text-gray-300">View profile</p>
-                      </div>
+                      <Transition
+                        show={open}
+                        as={Fragment}
+                        enter="transition ease-out duration-100"
+                        enterFrom="transform opacity-0 scale-95"
+                        enterTo="transform opacity-100 scale-100"
+                        leave="transition ease-in duration-75"
+                        leaveFrom="transform opacity-100 scale-100"
+                        leaveTo="transform opacity-0 scale-95"
+                      >
+                        <Menu.Items
+                          static
+                          className="origin-bottom-left absolute bottom-9 left-0 mb-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+                        >
+                          <Menu.Item>
+                            {({ active }) => (
+                              <a
+                                href="/"
+                                className={classNames(
+                                  active ? 'bg-gray-100' : '',
+                                  'block px-4 py-2 text-sm text-gray-700'
+                                )}
+                              >
+                                Sign out
+                              </a>
+                            )}
+                          </Menu.Item>
+                        </Menu.Items>
+                      </Transition>
+                    </>
+                  )}
+                </Menu>
                     </div>
-                  </a>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-white">{user.Username}</p>
+                      <p className="text-xs font-medium text-gray-300 group-hover:text-gray-200">View profile</p>
+                    </div>
+                  </div>
+                </span>
                 </div>
               </div>
             </Transition.Child>
@@ -207,7 +247,7 @@ const Home = (data) => {
                 </nav>
               </div>
               <div className="flex-shrink-0 flex bg-gray-700 p-4">
-                <a href="#" className="flex-shrink-0 w-full group block">
+                <span className="flex-shrink-0 w-full group block">
                   <div className="flex items-center">
                     <div>
                       {/* <img
@@ -245,33 +285,7 @@ const Home = (data) => {
                           <Menu.Item>
                             {({ active }) => (
                               <a
-                                href="#"
-                                className={classNames(
-                                  active ? 'bg-gray-100' : '',
-                                  'block px-4 py-2 text-sm text-gray-700'
-                                )}
-                              >
-                                Your Profile
-                              </a>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
-                              <a
-                                href="#"
-                                className={classNames(
-                                  active ? 'bg-gray-100' : '',
-                                  'block px-4 py-2 text-sm text-gray-700'
-                                )}
-                              >
-                                Settings
-                              </a>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
-                              <a
-                                href="/login"
+                                href="/"
                                 className={classNames(
                                   active ? 'bg-gray-100' : '',
                                   'block px-4 py-2 text-sm text-gray-700'
@@ -292,7 +306,7 @@ const Home = (data) => {
                       <p className="text-xs font-medium text-gray-300 group-hover:text-gray-200">View profile</p>
                     </div>
                   </div>
-                </a>
+                </span>
               </div>
             </div>
           </div>
@@ -310,7 +324,7 @@ const Home = (data) => {
           <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
             <div className="py-6">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h1 className="text-2xl font-semibold text-gray-900 flex justify-center">{data.data}</h1>
+                <h1 className="text-2xl font-semibold text-gray-900 flex justify-center">{currentPage}</h1>
                 <div className="flex justify-end">
                   <span className="items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 shadow-md shadow-cyan-500/50">
                     <Clock format={'HH:mm:ss'} ticking={true} timezone={'Asia/Jakarta'}/> WIB
@@ -341,7 +355,7 @@ const Home = (data) => {
                   })
                   : data.data === "class view" ? 
                     <ClassDescription/>
-                  : data.data === "manage case" ?
+                  : data.data === "manage class" ?
                   <div>
                     <div className="flex-col flex h-screen items-center">
                       <Loader

@@ -8,7 +8,6 @@ import { Fragment, useState, useEffect, useRef } from 'react'
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import firebase from '../firebase'
-import Loader from "react-loader-spinner";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
@@ -22,24 +21,39 @@ const ClassDescription = () => {
     const [caseType, setCaseType] = useState({});
     const [uploaded, setUploaded] = useState();
     const [openAlert, setOpenAlert] = React.useState(false);
+    const [openWarning, setOpenWarning] = React.useState(false);
     const storage = firebase.storage();
 
     const handleClick = () => {
         setOpenAlert(true);
     };
 
+    const handleClickWarning = () => {
+        setOpenWarning(true);
+    };
+
     const handleClose = (event, reason) => {
         if (reason === 'clickaway') {
         return;
         }
-
         setOpenAlert(false);
+    };
+
+    const handleCloseWarning = (event, reason) => {
+        if (reason === 'clickaway') {
+        return;
+        }
+        setOpenWarning(false);
     };
 
     const assignmentBoxRefs = useRef([]);
     const finalExamBoxRefs = useRef([]);
+    const assignmentDownloadBtnRefs = useRef([]);
+    const finalExamDownloadBtnRefs = useRef([]);
     assignmentBoxRefs.current = [];
     finalExamBoxRefs.current = [];
+    assignmentDownloadBtnRefs.current = [];
+    finalExamDownloadBtnRefs.current = [];
     
     let param = useParams()
     let courseCode = param.classCourseId.split("+")[0]
@@ -58,6 +72,17 @@ const ClassDescription = () => {
     const addToFinalExamBoxRefs = (el)=>{
         if(el && !finalExamBoxRefs.current.includes(el)){
             finalExamBoxRefs.current.push(el)
+        }
+    }
+    const addToAssignmentDownloadBtnRefs = (el)=>{
+        if(el && !assignmentDownloadBtnRefs.current.includes(el)){
+            assignmentDownloadBtnRefs.current.push(el);
+        }
+    }
+    
+    const addToFinalExamDownloadBtnRefs = (el)=>{
+        if(el && !finalExamDownloadBtnRefs.current.includes(el)){
+            finalExamDownloadBtnRefs.current.push(el)
         }
     }
 
@@ -80,8 +105,6 @@ const ClassDescription = () => {
         if(uploaded){
             handleClick();
             for(var i=1; i <= assignments.length; i++){
-                console.log('uploaded :'+uploaded.Type);
-                console.log("assignment"+i);
                 if(uploaded.Type === "assignment"+i){
                     assignmentBoxRefs.current[i-1].innerHTML = uploaded.File.name
                 }
@@ -92,6 +115,10 @@ const ClassDescription = () => {
                 }
             }
         }
+        else if(uploaded == false){
+            handleClickWarning();
+            setUploaded();
+        }
     }, [uploaded])
 
     let storageDirectory = '/2110/' + currentClass.CourseCode + '/' + currentClass.ClassName + '/'
@@ -100,6 +127,7 @@ const ClassDescription = () => {
         .child(`${storageDirectory}/${caseType}/case/`).listAll()
         .then(res => {
             res.items.forEach(item =>{
+                // console.log(item.getMetadata());
                 let temp = {
                     'Type': caseType,
                     'Name': item.name,
@@ -108,6 +136,7 @@ const ClassDescription = () => {
                 for(var i=1; i <= assignments.length; i++){
                     if(caseType === "assignment"+i && assignmentBoxRefs.current[i-1]){
                         assignmentBoxRefs.current[i-1].innerHTML = temp.File.name
+                        assignmentDownloadBtnRefs.current[i-1].className = "bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     }
                 }
             })
@@ -130,6 +159,7 @@ const ClassDescription = () => {
                 for(var i=1; i <= assignments.length; i++){
                     if(caseType === "finalExam"+i && finalExamBoxRefs.current[i-1]){
                         finalExamBoxRefs.current[i-1].innerHTML = temp.File.name
+                        finalExamDownloadBtnRefs.current[i-1].className = "bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     }
                 }
             })
@@ -163,9 +193,7 @@ const ClassDescription = () => {
 
     function initAssignmentList(){
         if(assignments === null) assignments = [];
-        let bgColor = "white"
         for (var i = 1; i <= assignments.length; i++) {
-            if (i%2 == 0) bgColor = "gray-50"
             asgList.push(
                 <div className={`bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
                     <dt className="text-sm font-medium text-gray-500">Assignment {i}</dt>
@@ -185,9 +213,7 @@ const ClassDescription = () => {
     
     function initFinalExamList(){
         if(finalExams == []) return;
-        let bgColor = "white"
         for (let i = 1; i <= finalExams.length; i++) {
-            if (i%2 == 0) bgColor = "gray-50"
             finalExamList.push(
                 <div className={`bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
                     <dt className="text-sm font-medium text-gray-500">Final Exam {i}</dt>
@@ -215,6 +241,67 @@ const ClassDescription = () => {
         setFormOpen(true);
     }
 
+    function downloadAssignment(e){
+        if(e.target.className.includes('gray')){
+            return;
+        }
+        let id = e.target.id;
+        let type = 'assignment'+id
+        document.body.style.cursor = "progress";
+        storage.ref().child(`${storageDirectory}/${type}/case/`).listAll().then(res => {
+            res.items.forEach(item =>{
+                item.getDownloadURL().then(url => {
+                    console.log(url);
+                    fetch('/download-exam-case',{
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(url)
+                    }).then(res => res.json()).then(data=>{
+                        console.log(data);
+                        document.body.style.cursor = "default";
+                    })
+                })
+            })
+        })
+        .catch(err => {
+            console.log(err);
+            document.body.style.cursor = "default";
+        })
+    }
+    function downloadFinalExam(e){
+        if(e.target.className.includes('gray')){
+            return;
+        }
+        let id = e.target.id;
+        let type = 'finalExam'
+        document.body.style.cursor = "progress";
+        storage.ref().child(`${storageDirectory}/${type}/case/`).listAll().then(res => {
+            res.items.forEach(item =>{
+                item.getDownloadURL().then(url => {
+                    console.log(url);
+                    fetch('/download-exam-case',{
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(url)
+                    }).then(res => res.json()).then(data=>{
+                        console.log(data);
+                        document.body.style.cursor = "default";
+                    })
+                })
+            })
+        })
+        .catch(err => {
+            console.log(err);
+            document.body.style.cursor = "default";
+        })
+    }
+
     function setFinalExamDirectory(e){
         let id = e.target.id;
         let temp = {
@@ -236,12 +323,26 @@ const ClassDescription = () => {
                         <li className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
                             <div className="w-0 flex-1 flex items-center">
                                 <PaperClipIcon className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
-                                <span className="ml-2 flex-1 w-0 truncate" ref={addToAssignmentBoxRefs}>-</span>
+                                <span className="ml-2 flex-1 w-0 truncate" ref={addToAssignmentBoxRefs}>
+                                    -
+                                </span>
                             </div>
                             <div className="ml-4 flex-shrink-0 flex space-x-4">
-                                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500" id={i} onClick={setAssignmentDirectory}>
+                                <p className="cursor-pointer font-medium text-indigo-600 hover:text-indigo-500" id={i} onClick={setAssignmentDirectory}>
                                     Upload
-                                </a>
+                                </p>
+                            <span className="text-gray-300" aria-hidden="true">
+                            |
+                            </span>
+                                <button
+                                type="button"
+                                id = {i}
+                                onClick={downloadAssignment}
+                                ref={addToAssignmentDownloadBtnRefs}
+                                className="cursor-not-allowed bg-white rounded-md font-medium text-gray-600"
+                                >
+                                Download
+                                </button>
                             </div>
                         </li>
                     </ul>
@@ -263,12 +364,26 @@ const ClassDescription = () => {
                         <li className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
                             <div className="w-0 flex-1 flex items-center">
                                 <PaperClipIcon className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
-                                <span className="ml-2 flex-1 w-0 truncate" ref={addToFinalExamBoxRefs}>-</span>
+                                <span className="ml-2 flex-1 w-0 truncate" ref={addToFinalExamBoxRefs}>
+                                    -
+                                </span>
                             </div>
                             <div className="ml-4 flex-shrink-0 flex space-x-4">
-                                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500" id={i} onClick={setFinalExamDirectory}>
+                                <p className="cursor-pointer font-medium text-indigo-600 hover:text-indigo-500" id={i} onClick={setFinalExamDirectory}>
                                     Upload
-                                </a>
+                                </p>
+                                <span className="text-gray-300" aria-hidden="true">
+                                |
+                                </span>
+                                    <button
+                                    type="button"
+                                    id={i}
+                                    onClick={downloadFinalExam}
+                                    ref={addToFinalExamDownloadBtnRefs}
+                                    className="cursor-not-allowed bg-white rounded-md font-medium text-gray-600"
+                                    >
+                                    Download
+                                    </button>
                             </div>
                         </li>
                     </ul>
@@ -338,6 +453,12 @@ const ClassDescription = () => {
             <Snackbar open={openAlert} autoHideDuration={6000} onClose={handleClose}>
                 <Alert onClose={handleClose} severity="success" sx={{ width: '100%' }}>
                 {uploaded && `${uploaded.File.name} is Uploaded Successfully !`}
+                </Alert>
+            </Snackbar>
+
+            <Snackbar open={openWarning} autoHideDuration={6000} onClose={handleCloseWarning}>
+                <Alert onClose={handleCloseWarning} severity="warning" sx={{ width: '100%' }}>
+                Choose a file to upload !
                 </Alert>
             </Snackbar>
             {/* <Alert severity="error">This is an error message!</Alert>

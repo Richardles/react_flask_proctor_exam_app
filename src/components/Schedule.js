@@ -41,7 +41,7 @@ const Schedule = (props) => {
 
       {/* <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 my-5"> */}
       {classData?.map((data) => (
-        <li key={data.key} className="col-span-1 hover:bg-blue-300 rounded-lg shadow divide-y divide-gray-200 bg-white">
+        <li key={data.key} className="col-span-1 hover:bg-blue-200 rounded-lg shadow divide-y divide-gray-200 bg-white">
           <div className="w-full flex items-center justify-between p-6 space-x-6">
             <div className="flex-1 truncate">
               <div className="flex items-center space-x-3">

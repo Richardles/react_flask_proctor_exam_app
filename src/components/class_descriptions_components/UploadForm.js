@@ -18,22 +18,34 @@ const UploadForm = (props) => {
     let storageDirectory = '/2110/' + classData.CourseCode + '/' + classData.ClassName + '/' + caseType.Type + '/case'
 
     function uploadCase(){
-        if(file === undefined) return;
+        if(file === undefined){
+            props.setUploaded(false);
+            setOpen(false)
+            props.formOpen(false)
+            return;
+        }
         var storage = firebase.storage()
+        storage.ref(`${storageDirectory}`).listAll().then(res => {
+            res.items.forEach(item =>{
+                if(item.name != file.name){
+                    item.delete();
+                }
+            })
+        })
         storage.ref(
             `${storageDirectory}/${file.name}`
-        ).put(file)
-        .on(firebase.storage.TaskEvent.STATE_CHANGED,
-            function(snapshot){
-                let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-                setProgress(progress.toFixed(2));
-                if(progress >= 100){
-                    let temp = {
-                        'Type': caseType.Type,
-                        'Name': caseType.Name,
-                        'File': file
-                    }
-                    props.setUploaded(temp)
+            ).put(file)
+            .on(firebase.storage.TaskEvent.STATE_CHANGED,
+                function(snapshot){
+                    let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+                    setProgress(progress.toFixed(2));
+                    if(progress >= 100){
+                        let temp = {
+                            'Type': caseType.Type,
+                            'Name': caseType.Name,
+                            'File': file
+                        }
+                        props.setUploaded(temp)
                     setGrayOpacity(500)
                 }
             })
