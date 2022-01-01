@@ -11,7 +11,7 @@ const firebaseConfig = {
     messagingSenderId: "955030323895",
     appId: "1:955030323895:web:2046c796d234fd6e7dc332",
     measurementId: "${config.measurementId}",
-    databaseURL : ""
+    databaseURL : "https://exam-app-2ce87-default-rtdb.firebaseio.com"
 }
 
 firebase.initializeApp(firebaseConfig);

@@ -317,7 +317,7 @@ const ClassDescription = () => {
         for (var i = 1; i <= assignments.length; i++) {
             asgUploadBox.push(
                 <div className={`bg-white px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
-                    <dt className="text-sm font-medium text-gray-500">Assignment Case {i}</dt>
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">Assignment Case {i}</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                     <ul className="border border-gray-200 rounded-md divide-y divide-gray-200">
                         <li className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
@@ -358,7 +358,7 @@ const ClassDescription = () => {
         for (var i = 1; i <= finalExams.length; i++) {
             finalExamList.push(
                 <div className={`bg-gray-50 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
-                    <dt className="text-sm font-medium text-gray-500">Final Exam Case {i}</dt>
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">Final Exam Case {i}</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                     <ul className="border border-gray-200 rounded-md divide-y divide-gray-200">
                         <li className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">

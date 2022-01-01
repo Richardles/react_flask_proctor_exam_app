@@ -211,12 +211,16 @@ def get_user_by_username_password():
     }
     
     req_identity = requests.get(API_BASE_URL + "Account/Me", headers=bearer_token)
+    req_binusian = requests.get(API_BASE_URL + "Assistant/GetBinusianByBinusianId?binusianId="+json.loads(req_identity.text)['BinusianId'])
     
-    print(req_identity.text)
+    # print(req_identity.text[:-1]+(',"PictureId":"'+json.loads(req_binusian.text)['PictureId']+'"}'))
+    # print(jsonify('"PictureId":"'+json.loads(req_binusian.text)['PictureId']+'"'))
+    
+    myidentity = req_identity.text[:-1]+(',"PictureId":"'+json.loads(req_binusian.text)['PictureId']+'"}')
     
     if req_token.text == "":
         return redirect(MAIN_URL + "login")
     else:
-        session["account"] = req_identity.text
+        session["account"] = myidentity
         return redirect(MAIN_URL + "home/schedule")
 

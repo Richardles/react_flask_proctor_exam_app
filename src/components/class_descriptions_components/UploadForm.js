@@ -47,6 +47,8 @@ const UploadForm = (props) => {
                         }
                         props.setUploaded(temp)
                     setGrayOpacity(500)
+                    setOpen(false)
+                    props.formOpen(false)
                     }
                 })
         

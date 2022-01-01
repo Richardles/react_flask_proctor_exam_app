@@ -17,19 +17,29 @@ import {
     LinkIcon
 } from '@heroicons/react/solid'
 import Loader from "react-loader-spinner";
-import firebase from '../firebase'
+import firebase from '../firebase';
+import { v4 as uuidv4 } from 'uuid';
 
 const StudentDetail = () => {
 
     let currentClass = JSON.parse(sessionStorage.getItem('currentClass'));
+    const tabs = [
+        { name: 'All', href: '#', current: true },
+        { name: 'Assignment 1', href: '#', current: false },
+        { name: 'Assignment 2', href: '#', current: false },
+        { name: 'Final Exam', href: '#', current: false },
+    ]
     const [studentLog, setStudentLog] = useState([])
     const [pictureId, setPictureId] = useState()
     const [choosenLog, setChoosenLog] = useState([])
     const [backupLink, setBackupLink] = useState([])
     const [isLogViewable, setIsLogViewable] = useState(false);
     const [logList, setLogList] = useState([])
+    const [allLogs, setAllLogs] = useState([])
     const [isFetchingLog, setIsFetchingLog] = useState(true)
     const [open, setOpen] = useState(false)
+    const [examTabs, setExamTabs] = useState(tabs)
+    const [logModalIcon, setLogModalIcon] = useState()
     const params = useParams()
     const currentTime = new Date();
     const storage = firebase.storage();
@@ -43,6 +53,37 @@ const StudentDetail = () => {
         completed: { icon: CheckIcon, bgColorClass: 'bg-green-500' },
         information: { icon: InformationCircleIcon, bgColorClass: 'bg-gray-500' },
         suspected: { icon: ExclamationIcon, bgColorClass: 'bg-yellow-500' },
+    }
+    
+    function changeExamTypeDropDown(e){
+        changeExamType(JSON.parse(e.target.value))
+    }
+
+    function changeExamType(currTab){
+        let examType = ""
+        tabs.forEach(tab => {
+            if(tab.name === currTab.name){
+                tab.current = true;
+                examType = tab.name
+            }else{
+                tab.current = false
+            }
+        })
+        setExamTabs(tabs)
+
+        let allLog = allLogs
+        if(examType === "All"){
+            setLogList(allLogs)
+        }else{
+            let res = allLog.filter(a => {
+                return a.examType === examType
+            })
+            setLogList(res)
+        }
+    }
+
+    function classNames(...classes) {
+        return classes.filter(Boolean).join(' ')
     }
 
     const examTypes = {
@@ -86,12 +127,6 @@ const StudentDetail = () => {
     currentClass.StudentList.forEach(s => {
         if(s.Number === studentNumber){
             student = s
-            
-        fetch("https://laboratory.binus.ac.id/lapi/api/Account/GetThumbnail?id=" + student.PictureId).then(res => res.blob()
-            ).then(data => {
-                const imageObjectURL = URL.createObjectURL(data)
-                setPictureId(imageObjectURL)
-            })
         }
     })
 
@@ -117,16 +152,29 @@ const StudentDetail = () => {
 
     useEffect(() => {
         let storageDirectory = '/2110/' + currentClass.CourseCode + '/' + currentClass.ClassName + '/'
+
+        fetch("https://laboratory.binus.ac.id/lapi/api/Account/GetThumbnail?id=" + student.PictureId).then(res => res.blob()
+        ).then(data => {
+            const imageObjectURL = URL.createObjectURL(data)
+            setPictureId(imageObjectURL)
+        })
+
         let key = 0;
+        let isLogExists = false;
+        let logTemp = 0;
         storage.ref(`${storageDirectory}`).listAll().then((res) => {
+            if(res.prefixes.length === 0){
+                setIsFetchingLog(false);
+            }
             res.prefixes.forEach((exam) => {
                 storage.ref()
                 .child(`${storageDirectory}/${exam.name}/log/normal_log/`).listAll()
                 .then(res => {
                     res.items.forEach(item =>{
                         if(item.name.includes(student.Number)){
+                            isLogExists = true;
                             let temp = {
-                                id: key,
+                                id: uuidv4(),
                                 content: item.name,
                                 type: eventTypes.information,
                                 examType: examTypes[exam.name],
@@ -135,6 +183,10 @@ const StudentDetail = () => {
                                 detail: item
                             }
                             setLogList(logList => [...logList, temp])
+                            setAllLogs(allLogs => [...allLogs, temp])
+                        }
+                        if(!isLogExists){
+                            setIsFetchingLog(false)
                         }
                         item.getDownloadURL().then(url =>{
                             if(item.name.includes(student.Number)){
@@ -151,7 +203,7 @@ const StudentDetail = () => {
                                     setIsLogViewable(true)
                                     data.forEach(appName =>{
                                         let temp = {
-                                            id: key,
+                                            id: uuidv4(),
                                             fileName: item.name,
                                             content: appName,
                                             type: eventTypes.information,
@@ -170,14 +222,17 @@ const StudentDetail = () => {
                 .catch(err => {
                     console.log(err);
                 })
-        
                 storage.ref()
                 .child(`${storageDirectory}/${exam.name}/log/sus_log/`).listAll()
                 .then(res => {
+                    if(res.prefixes.length === 0){
+                        setIsFetchingLog(false);
+                    }
                     res.items.forEach(item =>{
                         if(item.name.includes(student.Number)){
+                            isLogExists = true;
                             let temp = {
-                                id: key,
+                                id: uuidv4(),
                                 content: item.name,
                                 type: eventTypes.suspected,
                                 examType: examTypes[exam.name],
@@ -186,6 +241,10 @@ const StudentDetail = () => {
                                 detail: item
                             }
                             setLogList(logList => [...logList, temp])
+                            setAllLogs(allLogs => [...allLogs, temp])
+                        }
+                        if(!isLogExists){
+                            setIsFetchingLog(false)
                         }
                         item.getDownloadURL().then(url =>{
                             if(item.name.includes(student.Number)){
@@ -202,7 +261,7 @@ const StudentDetail = () => {
                                     setIsLogViewable(true)
                                     data.forEach(appName =>{
                                         let temp = {
-                                            id: key,
+                                            id: uuidv4(),
                                             fileName: item.name,
                                             content: appName,
                                             type: eventTypes.suspected,
@@ -233,12 +292,12 @@ const StudentDetail = () => {
             body: JSON.stringify(currentClass.CourseCode+' '+currentClass.ClassName+' '+student.Number)
         }).then(res => res.json()).then(data=>{
             setBackupLink(data);
-            console.log(data);
         })
     }, [])
 
     function toggleLogModal(appLog){
         setChoosenLog([])
+        setLogModalIcon(appLog.type)
         setOpen(true);
         let idx = 1;
 
@@ -263,7 +322,7 @@ const StudentDetail = () => {
                     <div className="flex-shrink-0">
                     <div className="relative">
                         <img
-                        className="h-20 w-20 object-cover rounded-full"
+                        className="h-20 w-20 object-cover rounded-full drop-shadow-md"
                         src={pictureId}
                         alt=""
                         />
@@ -272,7 +331,7 @@ const StudentDetail = () => {
                     </div>
                     <div>
                     <h1 className="text-2xl font-bold text-gray-900">{student.Name}</h1>
-                    <p className="text-sm font-medium text-gray-500">
+                    <p className="text-base font-medium text-gray-500">
                         {student.Number}{' '}
                         <a href="#" className="text-gray-900">
                         
@@ -329,24 +388,32 @@ const StudentDetail = () => {
                             <div className="sm:col-span-2">
                             <dt className="text-sm font-medium text-gray-500">Answer Backup Link</dt>
                             <dd className="mt-1 text-sm text-gray-900">
-                                {backupLink?.map(link => (
-                                    <div className="sm:col-span-2">
-                                        <ul className="border border-gray-200 rounded-md divide-y divide-gray-200">
-                                            <li className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
-                                            <div className="w-0 flex-1 flex items-center">
-                                                <LinkIcon className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
-                                                {/* <span >resume_back_end_developer.pdf</span> */}
-                                                <a href={link.backup_link} target="_blank" className="ml-2 flex-1 w-0 truncate hover:text-indigo-600">
-                                                    {link.backup_link}
-                                                </a>
-                                            </div>
-                                            <div className="ml-4 flex-shrink-0">
-                                                <p className="text-sm font-medium text-gray-500">{examTypes[link.exam_type]}</p>
-                                            </div>
-                                            </li>
-                                        </ul>
+                                <div className="sm:col-span-2">
+                                <ul className="border border-gray-200 rounded-md divide-y divide-gray-200">
+                                {backupLink.length > 0 ? 
+                                    backupLink?.map(link => (
+                                        <li key={uuidv4()} className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                        <div className="w-0 flex-1 flex items-center">
+                                            <LinkIcon className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
+                                            <a href={link.backup_link} target="_blank" className="ml-2 flex-1 w-0 truncate hover:text-indigo-600">
+                                                {link.backup_link}
+                                            </a>
+                                        </div>
+                                        <div className="ml-4 flex-shrink-0">
+                                            <p className="text-sm font-medium text-gray-500">{examTypes[link.exam_type]}</p>
+                                        </div>
+                                        </li>
+                                    ))
+                                    :
+                                    <li className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                    <div className="w-0 flex-1 flex items-center">
+                                        <LinkIcon className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
+                                        <span className="ml-2 flex-1 w-0 truncate text-gray-500">Empty</span>
                                     </div>
-                                ))}
+                                    </li>
+                                }
+                                </ul>
+                                </div>
                             </dd>
                             </div>
                             
@@ -354,6 +421,46 @@ const StudentDetail = () => {
                         </div>
                     </div>
                     </section>
+
+                    <div>
+                        <div className="sm:hidden">
+                            <label htmlFor="tabs" className="sr-only">
+                            Select a tab
+                            </label>
+                            <select
+                            id="tabs"
+                            name="tabs"
+                            className="block w-full focus:ring-indigo-500 focus:border-indigo-500 border-gray-300 rounded-md"
+                            defaultValue={tabs.find((tab) => tab.current).name}
+                            onChange={changeExamTypeDropDown}
+                            >
+                            {examTabs.map((tab) => (
+                                <option key={tab.name} value={JSON.stringify(tab)}>{tab.name}</option>
+                            ))}
+                            </select>
+                        </div>
+                        <div className="hidden sm:block">
+                            <div className="border-b border-gray-200">
+                            <nav className="-mb-px flex" aria-label="Tabs">
+                                {examTabs.map((tab) => (
+                                <p
+                                    key={tab.name}
+                                    onClick={()=>changeExamType(tab)}
+                                    className={classNames(
+                                    tab.current
+                                        ? 'border-indigo-500 text-indigo-600 cursor-pointer'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 cursor-pointer',
+                                    'w-1/4 py-4 px-1 text-center border-b-2 font-medium text-sm'
+                                    )}
+                                    aria-current={tab.current ? 'page' : undefined}
+                                >
+                                    {tab.name}
+                                </p>
+                                ))}
+                            </nav>
+                            </div>
+                        </div>
+                    </div>
 
                         {/* Activity Feed */}
                         <div className="flex flex-col">
@@ -393,8 +500,9 @@ const StudentDetail = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {logList?.map((log) => (
-                                    <tr key={log.url}>
+                                    {logList?.sort((a, b) => b.logType.localeCompare(a.logType))
+                                    .map((log) => (
+                                    <tr key={log.id}>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                         <span
@@ -454,7 +562,7 @@ const StudentDetail = () => {
                                     <div className="w-full border-t border-gray-300" />
                                 </div>
                                 <div className="relative flex justify-center">
-                                    <span className="px-2 bg-white text-sm text-gray-500">Student log is empty</span>
+                                    <span className="px-2 bg-gray-100 rounded-full text-sm text-gray-500">Student log is empty</span>
                                 </div>
                             </div>
                             : ''
@@ -503,31 +611,43 @@ const StudentDetail = () => {
                         </button>
                     </div>
                     <div className="sm:flex sm:items-start">
+                        {/* <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <InformationCircleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                        </div>
                         <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
                         <ExclamationIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
-                        </div>
+                        </div> */}
+                        {logModalIcon && 
+                            <span
+                                className={classNames(
+                                    logModalIcon?.bgColorClass,
+                                    'h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white'
+                                )}
+                                >
+                                <logModalIcon.icon className="w-5 h-5 text-white" aria-hidden="true"/>
+                            </span>
+                        }
                         <div className="w-10/12 mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                        <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                            Application Log
-                        </Dialog.Title>
-                        <div className="mt-2">
-
-                        <ul className="divide-y divide-gray-200">
-                            {choosenLog?.map((log) => (
-                                <li key={log.key} className="py-4 flex">
-                                <p className="text-sm text-gray-500">{log.key}</p>
-                                <div className="ml-3">
-                                    <p className="text-sm font-medium text-gray-900">{log.content}</p>
-                                </div>
-                                </li>
-                            ))}
-                        </ul>
-                            {/* {choosenLog?.map((log) => (
-                                    <p key={log.key} className="text-sm text-gray-500">
-                                        {log.content}
-                                    </p>
-                            ))} */}
-                        </div>
+                            <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                                Application Log
+                            </Dialog.Title>
+                            <div className="mt-1">
+                            <ul className="divide-y divide-gray-200">
+                                {choosenLog?.map((log) => (
+                                    <li key={log.key} className="py-4 flex">
+                                    <p className="text-sm text-gray-500">{log.key}</p>
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-gray-900">{log.content}</p>
+                                    </div>
+                                    </li>
+                                ))}
+                            </ul>
+                                {/* {choosenLog?.map((log) => (
+                                        <p key={log.key} className="text-sm text-gray-500">
+                                            {log.content}
+                                        </p>
+                                ))} */}
+                            </div>
                         </div>
                     </div>
                     {/* <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
