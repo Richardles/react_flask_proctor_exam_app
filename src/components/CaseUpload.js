@@ -1,15 +1,23 @@
-import React from 'react'
+import React, { useState } from 'react'
 import firebase from '../firebase'
 
 const CaseUpload = () => {
 
+    const [progress, setProgress] = useState(0);
+
+    let file
     function uploadCase(e){
         console.log(e.target.files)
+        file = e.target.files[0]
         var storage = firebase.storage()
         storage.ref(
             `/Docs/${e.target.files[0].name}`
         ).put(e.target.files[0])
-        .on("state_changed", alert("success"), alert)
+        .on(firebase.storage.TaskEvent.STATE_CHANGED,
+            function(snapshot){
+                let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+                setProgress(progress.toFixed(2));
+            })
     }
 
     function downloadCase(){
@@ -24,10 +32,10 @@ const CaseUpload = () => {
     }
 
     return (
-        <div className="flex justify-center mt-8">
-            <div className="max-w-2xl rounded-lg shadow-xl bg-gray-50" style={{minWidth: "1000px"}}>
+        <div className="flex justify-center">
+            <div className="w-full">
                 <div className="m-4">
-                    <label className="inline-block mb-2 text-gray-500">File Upload</label>
+                    <label className="inline-block mb-2 text-gray-500">{!!(file) ? (progress < 100 ? `Uploading.. ${file.name}` : `${file.name} uploaded`) : 'File Upload'}</label>
                     <div className="flex items-center justify-center w-full">
                         <label
                             className="flex flex-col w-full h-32 border-4 border-blue-200 border-dashed hover:bg-gray-100 hover:border-gray-300">
@@ -44,14 +52,16 @@ const CaseUpload = () => {
                         </label>
                     </div>
                 </div>
-                <div className="flex justify-center p-2">
-                    <button className="w-full px-4 py-2 text-white bg-blue-500 rounded shadow-xl" onClick={uploadCase}>Upload</button>
+
+                <div className="mx-1 bg-gray-200 rounded-full">
+                    <div className="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full" style={{width: `${progress}%`}}>{progress > 0 ? `${progress} %` : ''}</div>
                 </div>
-                <div className="flex justify-center p-2">
-                    <button className="w-full px-4 py-2 text-white bg-blue-500 rounded shadow-xl" onClick={downloadCase}>Download</button>
-                </div>
+
+                {/* <div className="flex justify-center">
+                    <button className="w-full px-4 py-2 text-white bg-blue-500 rounded" onClick={uploadCase}>Upload</button>
+                </div> */}
             </div>
-        </div> 
+        </div>
     )
 }
 
