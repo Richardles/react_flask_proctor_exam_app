@@ -12,6 +12,17 @@ const CaseUpload = () => {
         .on("state_changed", alert("success"), alert)
     }
 
+    function downloadCase(){
+        var storage = firebase.storage()
+        var url = storage.ref('2110/COMP6232001/BB04/assignment1/case/O222-COMP6232-JF01-00.docx')
+        url.getDownloadURL().then(function(url){
+            var element = document.createElement('a');
+            element.setAttribute('download', url);
+            document.body.appendChild(element);
+            element.click();
+        })
+    }
+
     return (
         <div className="flex justify-center mt-8">
             <div className="max-w-2xl rounded-lg shadow-xl bg-gray-50" style={{minWidth: "1000px"}}>
@@ -35,6 +46,9 @@ const CaseUpload = () => {
                 </div>
                 <div className="flex justify-center p-2">
                     <button className="w-full px-4 py-2 text-white bg-blue-500 rounded shadow-xl" onClick={uploadCase}>Upload</button>
+                </div>
+                <div className="flex justify-center p-2">
+                    <button className="w-full px-4 py-2 text-white bg-blue-500 rounded shadow-xl" onClick={downloadCase}>Download</button>
                 </div>
             </div>
         </div> 
