@@ -1,5 +1,5 @@
 import React from 'react'
-import { Fragment, useState, useEffect } from 'react'
+import { Fragment, useState, useEffect, useRef } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { Disclosure, Menu } from '@headlessui/react'
 // import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
@@ -11,7 +11,9 @@ import {
   MenuIcon,
   UsersIcon,
   XIcon,
-  BellIcon
+  BellIcon,
+  LogoutIcon,
+  CheckIcon
 } from '@heroicons/react/outline'
 import { DotsVerticalIcon } from '@heroicons/react/solid'
 import Schedule from '../components/Schedule'
@@ -29,32 +31,27 @@ const Home = (data) => {
 
     const tabs = [
       { name: 'All', href: '#', current: true },
-      { name: 'Online', href: '#', current: false },
-      { name: 'Offline', href: '#', current: false },
-    ]
-    const team = [
-      {
-        name: 'Leslie Alexander',
-        handle: 'lesliealexander',
-        href: '#',
-        imageUrl:
-          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-        status: 'online',
-      },
+      // { name: 'Online', href: '#', current: false },
+      // { name: 'Offline', href: '#', current: false },
     ]
 
     const [user, setUser] = useState({});
     const [classTransactionDetail, setClassTransaction] = useState([]);
     const [isFetchingClassTransaction, setFetchingClassTransaction] = useState(true);
-    const [showNotification, setShowNotification] = useState(true)
-    const [showNotificationList, setShowNotificationList] = useState(true)
+    const [showNotification, setShowNotification] = useState(false)
     const [notificationList, setNotificationList] = useState([])
+    const [showNotificationList, setShowNotificationList] = useState(true)
+    const [notificationPopUpData, setNotificationPopUpData] = useState()
     const [proctorPicture, setProctorPicture] = useState()
+    const [signOutModalOpen, setSignOutModalOpen] = useState(false)
+
+    const cancelButtonRef = useRef()
     let currentPage = ''
     let viewLayout = 'py-4'
+    let activeClass;
 
     function classNames(...classes) {
-    return classes.filter(Boolean).join(' ')
+      return classes.filter(Boolean).join(' ')
     }
 
     // const query = new URLSearchParams(useLocation().search);
@@ -67,7 +64,7 @@ const Home = (data) => {
       //   content: 'discord'
       // }
       // ref.push(notif)
-      let activeClass = JSON.parse(localStorage.getItem('activeClass'))
+      activeClass = JSON.parse(localStorage.getItem('activeClass'))
       let courseCodeList = []
       if(activeClass){
         activeClass.forEach(a => {
@@ -98,18 +95,39 @@ const Home = (data) => {
         let time = dateTime[1].split('_')
         let date = new Date(dateTime[0])
         date.setHours(time[0], time[1], time[2])
-        let temp = {
-          path: c.ref.path.pieces_,
-          detail: {
-            courseCode: c.ref.path.pieces_[2],
-            className: c.ref.path.pieces_[3],
-            examType: c.ref.path.pieces_[4],
-            studentNumber: c.ref.path.pieces_[5],
-            dateTime: date
-          },
-          value: c.val()
+        let student = getStudentData(c.ref.path.pieces_[5]);
+        console.log(student)
+        fetch("https://laboratory.binus.ac.id/lapi/api/Account/GetThumbnail?id=" + student.PictureId).then(res => res.blob())
+          .then(data => {
+                const imageObjectURL = URL.createObjectURL(data)
+                let studentData = {
+                    imageUrl: imageObjectURL,
+                    data: student
+                }
+                let temp = {
+                  path: c.ref.path.pieces_,
+                  detail: {
+                    courseCode: c.ref.path.pieces_[2],
+                    className: c.ref.path.pieces_[3],
+                    examType: c.ref.path.pieces_[4],
+                    studentNumber: c.ref.path.pieces_[5],
+                    dateTime: date,
+                  },
+                  student: studentData,
+                  value: c.val()
+                }
+                setNotificationList(notificationList => [...notificationList, temp])
+            })
+      }
+    }
+
+    function getStudentData(nim){
+      for(let i = 0; i < activeClass.length; i++){
+        for(let j = 0; j < activeClass[i].StudentList.length; j++){
+          if(activeClass[i].StudentList[j].Number === nim){
+            return activeClass[i].StudentList[j];
+          }
         }
-        setNotificationList(notificationList => [...notificationList, temp])
       }
     }
 
@@ -424,22 +442,32 @@ const Home = (data) => {
                       </div>
                     </div>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                      <span className="inline-flex items-center px-3 py-0.5 mx-5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 shadow-md shadow-black">
+                      <span className="inline-flex items-center px-3 py-0.5 mx-2 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 shadow-md shadow-black">
                         <svg className="-ml-1 mr-1.5 h-2 w-2 text-indigo-400" fill="currentColor" viewBox="0 0 8 8">
                           <circle cx={4} cy={4} r={3} />
                         </svg>
                           <span><Clock format={'HH:mm:ss'} ticking={true} timezone={'Asia/Jakarta'}/> WIB</span>
                       </span>
                       <button
-                      className="bg-white p-1 rounded-full text-gray-400 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      className="bg-white p-1 mx-2 rounded-full text-gray-400 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       onClick={() => {
-                          setShowNotificationList(true);
-                          getNotification();
+                        setShowNotificationList(true)
+                        getNotification()
                         }
                       }
                       >
                         <span className="sr-only">View notifications</span>
                         <BellIcon className="h-6 w-6" aria-hidden="true"/>
+                      </button>
+                      <button
+                      className="bg-white p-1 mx-2 rounded-full text-gray-400 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      onClick={() => {
+                        setSignOutModalOpen(true)
+                        }
+                      }
+                      >
+                        <span className="sr-only">Log out</span>
+                        <LogoutIcon className="h-6 w-6" aria-hidden="true"/>
                       </button>
                     </div>
                   </div>
@@ -529,21 +557,21 @@ const Home = (data) => {
                         />
                       </div>
                       <div className="ml-3 w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900">Emilia Gates</p>
-                        <p className="mt-1 text-sm text-gray-500">Sent you an invite to connect.</p>
+                        <p className="text-sm font-medium text-gray-900">{notificationPopUpData?.detail.studentNumber}</p>
+                        <p className="mt-1 text-sm text-gray-500">{'Opened '+notificationPopUpData?.value}</p>
                         <div className="mt-4 flex">
                           <button
                             type="button"
                             className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                           >
-                            Accept
+                            Open Student View
                           </button>
-                          <button
+                          {/* <button
                             type="button"
                             className="ml-3 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                           >
-                            Decline
-                          </button>
+                            Close
+                          </button> */}
                         </div>
                       </div>
                       <div className="ml-4 flex-shrink-0 flex">
@@ -565,7 +593,6 @@ const Home = (data) => {
           </div>
         </>
 
-        {/* Notification SlideOver */}
         <Transition.Root show={showNotificationList} as={Fragment}>
           <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={showNotificationList} onClose={setShowNotificationList}>
             <div className="absolute inset-0 overflow-hidden">
@@ -618,37 +645,31 @@ const Home = (data) => {
                         </div>
                       </div>
                       <ul className="divide-y divide-gray-200 overflow-y-auto">
-                        {notificationList?.map((notif) => (
-                          <li key={notif.path} className="px-6 py-5 relative">
+                        {notificationList.map((log) => (
+                          <li key={log.path} className="px-6 py-5 relative">
                             <div className="group flex justify-between items-center">
-                              <span className="-m-1 p-1 block">
+                              <a href={` http://localhost:3000/home/schedule/${log.detail.courseCode}+${log.detail.className}/${log.student.data.Number} `} className="-m-1 p-1 block">
                                 <div className="absolute inset-0 group-hover:bg-gray-50" aria-hidden="true" />
                                 <div className="flex-1 flex items-center min-w-0 relative">
                                   <span className="flex-shrink-0 inline-block relative">
-                                    {/* <img className="h-10 w-10 rounded-full" src={person.imageUrl} alt="" /> */}
+                                    <img className="h-10 w-10 object-cover rounded-full" src={log.student.imageUrl} alt="" />
                                     {/* <span
                                       className={classNames(
-                                        'online' === 'online' ? 'bg-green-400' : 'bg-gray-300',
+                                        'online' === 'online' ? 'bg-green-400' : 'bg-red-400',
                                         'absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white'
                                       )}
                                       aria-hidden="true"
                                     /> */}
                                   </span>
                                   <div className="ml-4 truncate">
-                                    <span className="text-sm font-medium text-gray-900 truncate">{notif.value}</span>
-                                    <span className="text-sm text-gray-500 truncate">{' opened by '}</span>
-                                    <span className="text-sm font-medium text-gray-900 truncate">{notif.detail.studentNumber}</span>
-                                    <p className="text-sm text-gray-500 truncate">{notif.detail.studentNumber}</p>
-                                    <p className="text-sm text-gray-500 truncate">{
-                                      notif.detail.courseCode+' '+
-                                      notif.detail.className+' '+
-                                      notif.detail.examType
-                                    }</p>
+                                    <p className="text-sm font-medium text-gray-900 truncate">{log.student.data.Name}</p>
+                                    <span className="text-sm text-gray-500 truncate">{log.student.data.Number}{' opened '}</span>
+                                    <span className="text-sm font-medium text-gray-900 truncate">{log.value}</span>
                                   </div>
                                 </div>
-                              </span>
+                              </a>
                               <Menu as="div" className="ml-2 relative inline-block text-left">
-                                {({ open }) => (
+                                {({ showNotificationList }) => (
                                   <>
                                     <Menu.Button className="group relative w-8 h-8 bg-white rounded-full inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                       <span className="sr-only">Open options menu</span>
@@ -660,7 +681,7 @@ const Home = (data) => {
                                       </span>
                                     </Menu.Button>
                                     <Transition
-                                      show={open}
+                                      show={showNotificationList}
                                       as={Fragment}
                                       enter="transition ease-out duration-100"
                                       enterFrom="transform opacity-0 scale-95"
@@ -714,6 +735,84 @@ const Home = (data) => {
                   </div>
                 </Transition.Child>
               </div>
+            </div>
+          </Dialog>
+        </Transition.Root>
+
+        <Transition.Root show={signOutModalOpen} as={Fragment}>
+          <Dialog
+            as="div"
+            static
+            className="fixed z-10 inset-0 overflow-y-auto"
+            initialFocus={cancelButtonRef}
+            open={signOutModalOpen}
+            onClose={setSignOutModalOpen}
+          >
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
+
+              {/* This element is to trick the browser into centering the modal contents. */}
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+                &#8203;
+              </span>
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-400">
+                      <LogoutIcon className="h-6 w-6 text-white" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Sign Out
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          Are you sure you want to sign out?
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                    <button
+                      type="button"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
+                      onClick={() => setSignOutModalOpen(false)}
+                      onClick={() => {
+                        clearStorage()
+                        window.location.href = "/"
+                      }}
+                    >
+                      Sign Out
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                      onClick={() => setSignOutModalOpen(false)}
+                      ref={cancelButtonRef}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </Transition.Child>
             </div>
           </Dialog>
         </Transition.Root>
