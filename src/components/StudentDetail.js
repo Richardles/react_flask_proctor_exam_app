@@ -22,7 +22,18 @@ import { v4 as uuidv4 } from 'uuid';
 
 const StudentDetail = () => {
 
-    let currentClass = JSON.parse(sessionStorage.getItem('currentClass'));
+    let currentClass = null;
+    let param = useParams()
+    let courseCode = param.classCourseId.split("+")[0]
+    let className = param.classCourseId.split("+")[1]
+    let activeClass = JSON.parse(localStorage.getItem('activeClass'))
+    activeClass.forEach(c =>{
+        if(c.ClassName === className && c.CourseCode === courseCode){
+            currentClass = c;
+            sessionStorage.setItem('currentClass', JSON.stringify(currentClass));
+        }
+    })
+    
     const tabs = [
         { name: 'All', href: '#', current: true },
         { name: 'Assignment 1', href: '#', current: false },
@@ -33,6 +44,7 @@ const StudentDetail = () => {
     const [pictureId, setPictureId] = useState()
     const [choosenLog, setChoosenLog] = useState([])
     const [backupLink, setBackupLink] = useState([])
+    const [appLogList, setAppLogList] = useState([])
     const [isLogViewable, setIsLogViewable] = useState(false);
     const [logList, setLogList] = useState([])
     const [allLogs, setAllLogs] = useState([])
@@ -40,6 +52,7 @@ const StudentDetail = () => {
     const [open, setOpen] = useState(false)
     const [examTabs, setExamTabs] = useState(tabs)
     const [logModalIcon, setLogModalIcon] = useState()
+    const [logHistoryView, setLogHistoryView] = useState(true)
     const params = useParams()
     const currentTime = new Date();
     const storage = firebase.storage();
@@ -106,7 +119,8 @@ const StudentDetail = () => {
                 }
                 i++;
             })
-        }else if(currentClass.ExamSchedule.finalExams.length > 0){
+        }
+        if(currentClass.ExamSchedule.finalExams.length > 0){
             let i = 1;
             currentClass.ExamSchedule.finalExams.forEach(finalExam => {
                 if(currentTime <= new Date(finalExam.Date)){
@@ -152,7 +166,7 @@ const StudentDetail = () => {
 
     useEffect(() => {
         let storageDirectory = '/2110/' + currentClass.CourseCode + '/' + currentClass.ClassName + '/'
-
+        getNotification()
         fetch("https://laboratory.binus.ac.id/lapi/api/Account/GetThumbnail?id=" + student.PictureId).then(res => res.blob()
         ).then(data => {
             const imageObjectURL = URL.createObjectURL(data)
@@ -313,6 +327,55 @@ const StudentDetail = () => {
         })
     }
 
+    function getNotification(){
+        const ref = firebase.database().ref('2110').child('notification').child(currentClass.CourseCode).child(currentClass.ClassName)
+        
+        // let activeClass = JSON.parse(localStorage.getItem('activeClass'))
+        // let courseCodeList = []
+        // if(activeClass){
+        //   activeClass.forEach(a => {
+        //     if(!courseCodeList.includes(a.CourseCode)){
+        //       courseCodeList.push(a.CourseCode)
+        //     }
+        //   })
+        // }
+  
+        ref.on("value",(snapshot)=>{
+          setAppLogList([])
+          snapshot.forEach(c => {
+            // if(courseCodeList.includes(c.key)){
+              getLeaf(c)
+            // }
+          })
+        })
+      }
+  
+      function getLeaf(c){
+        if(c.exists() && c.hasChildren()){
+          c.forEach(child => {
+            getLeaf(child)
+          })
+        }
+        if(typeof c.val() === 'string' && c.ref.path.pieces_.includes(student.Number)){
+          let dateTime = c.ref.path.pieces_[6].split(' ')
+          let time = dateTime[1].split('_')
+          let date = new Date(dateTime[0])
+          date.setHours(time[0], time[1], time[2])
+          let temp = {
+            path: c.ref.path.pieces_,
+            detail: {
+              courseCode: c.ref.path.pieces_[2],
+              className: c.ref.path.pieces_[3],
+              examType: c.ref.path.pieces_[4],
+              studentNumber: c.ref.path.pieces_[5],
+              dateTime: date
+            },
+            value: c.val()
+          }
+          setAppLogList(appLogList => [...appLogList, temp])
+        }
+      }
+
     return (
         <div className="min-h-screen bg-gray-100">
             <main className="py-10">
@@ -343,15 +406,25 @@ const StudentDetail = () => {
                 <div className="mt-6 flex flex-col-reverse justify-stretch space-y-4 space-y-reverse sm:flex-row-reverse sm:justify-end sm:space-x-reverse sm:space-y-0 sm:space-x-3 md:mt-0 md:flex-row md:space-x-3">
                     <button
                     type="button"
-                    className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
+                    onClick={()=>setLogHistoryView(true)}
+                    className={
+                        logHistoryView ? 'inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500'
+                        :
+                        `inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500`
+                    }
                     >
-                    Disqualify
+                    Log History
                     </button>
                     <button
                     type="button"
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
+                    onClick={()=>setLogHistoryView(false)}
+                    className={
+                        logHistoryView ? `inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500`
+                        :
+                        'inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500'
+                    }
                     >
-                    Notify
+                    Current Log
                     </button>
                 </div>
                 </div>
@@ -422,6 +495,10 @@ const StudentDetail = () => {
                     </div>
                     </section>
 
+                    {/* log view starts here */}
+
+                    {logHistoryView ? 
+                    <>
                     <div>
                         <div className="sm:hidden">
                             <label htmlFor="tabs" className="sr-only">
@@ -494,8 +571,11 @@ const StudentDetail = () => {
                                     >
                                         Type
                                     </th>
-                                    <th scope="col" className="relative px-6 py-3">
-                                        <span className="sr-only">Edit</span>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        
                                     </th>
                                     </tr>
                                 </thead>
@@ -530,7 +610,7 @@ const StudentDetail = () => {
                                             <div className="text-sm text-gray-900">{log.examType}</div>
                                             <div className="text-sm text-gray-500">{log.logType}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                         {isLogViewable && 
                                             <span className="cursor-pointer text-indigo-600 hover:text-indigo-900" onClick={() => toggleLogModal(log)}>
                                                 View
@@ -567,6 +647,83 @@ const StudentDetail = () => {
                             </div>
                             : ''
                         }
+                    </>
+                    
+                    : 
+                    // App Log List
+                    <div className="flex flex-col">
+                        <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                            <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                            <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                                <table className="min-w-full divide-y divide-yellow-200">
+                                <thead className="bg-red-50">
+                                    <tr>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider"
+                                    >
+                                        App Name
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider"
+                                    >
+                                        Date
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider"
+                                    >
+                                        Latest Update
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider"
+                                    >
+                                        Type
+                                    </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {appLogList?.sort((a, b) => b.value.localeCompare(a.value))
+                                    .map((log) => (
+                                    <tr key={log.path}>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className="text-sm font-medium text-gray-900">{log.value}</div>
+                                        </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">{log.detail.dateTime.toDateString()}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">{log.detail.dateTime.toLocaleTimeString()}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">{examTypes[log.detail.examType]}</div>
+                                            {/* <div className="text-sm text-gray-500">{log.value}</div> */}
+                                        </td>
+                                        
+                                    </tr>
+                                    ))}
+                                </tbody>
+                                </table>
+                            </div>
+                            </div>
+                        </div>
+                        {appLogList.length <= 0 ?
+                            <div className="relative my-5">
+                                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                    <div className="w-full border-t border-gray-300" />
+                                </div>
+                                <div className="relative flex justify-center">
+                                    <span className="px-2 bg-gray-100 rounded-full text-sm text-gray-500">Student current process is empty</span>
+                                </div>
+                            </div>
+                            : ''}
+                        </div>
+                    }
+                    
                     </div>
                 </div>
             </main>

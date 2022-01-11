@@ -7,7 +7,8 @@ import { PlusSmIcon } from '@heroicons/react/solid'
 import { Fragment, useState, useEffect, useRef } from 'react'
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
-import firebase from '../firebase'
+import firebase from '../firebase';
+import { v4 as uuidv4 } from 'uuid';
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
@@ -169,33 +170,12 @@ const ClassDescription = () => {
         })
     }
 
-    function initAssignmentList(){
-        if(assignments === null) assignments = [];
-        let bgColor = "white"
-        for (var i = 1; i <= assignments.length; i++) {
-            if (i%2 == 0) bgColor = "gray-50"
-            asgList.push(
-                <div className={`bg-${bgColor} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
-                    <dt className="text-sm font-medium text-gray-500">Assignment {i}</dt>
-                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{(new Date(assignments[i-1].Date)).toDateString()}</dd>
-                </div>
-            );
-        }
-        if(assignments.length === 0){
-            asgList.push(
-                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6" key={0}>
-                    <dt className="text-sm font-medium text-gray-500">Assignment</dt>
-                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">-</dd>
-                </div>
-            );
-        }
-    }
 
     function initAssignmentList(){
         if(assignments === null) assignments = [];
         for (var i = 1; i <= assignments.length; i++) {
             asgList.push(
-                <div className={`bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
+                <div className={`bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={uuidv4()}>
                     <dt className="text-sm font-medium text-gray-500">Assignment {i}</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{(new Date(assignments[i-1].Date)).toDateString()}</dd>
                 </div>
@@ -215,7 +195,7 @@ const ClassDescription = () => {
         if(finalExams == []) return;
         for (let i = 1; i <= finalExams.length; i++) {
             finalExamList.push(
-                <div className={`bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
+                <div className={`bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={uuidv4()}>
                     <dt className="text-sm font-medium text-gray-500">Final Exam {i}</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{(new Date(finalExams[i-1].Date)).toDateString()}</dd>
                 </div>
@@ -356,7 +336,7 @@ const ClassDescription = () => {
     function initFinalExamUploadBox(){
         if(finalExams == []) return;
         for (var i = 1; i <= finalExams.length; i++) {
-            finalExamList.push(
+            finalExamUploadBox.push(
                 <div className={`bg-gray-50 px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`} key={i}>
                     <dt className="text-sm font-medium text-gray-500 flex items-center">Final Exam Case {i}</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
@@ -433,6 +413,8 @@ const ClassDescription = () => {
                 </div>
                 <div>
                     {asgUploadBox}
+                </div>
+                <div>
                     {finalExamUploadBox}
                 </div>
                 </dl>
