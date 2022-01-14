@@ -14,7 +14,8 @@ import {
   XIcon,
   BellIcon,
   LogoutIcon,
-  CheckIcon
+  CheckIcon,
+  AcademicCapIcon
 } from '@heroicons/react/outline'
 import { DotsVerticalIcon } from '@heroicons/react/solid'
 import Schedule from '../components/Schedule'
@@ -49,7 +50,7 @@ const Home = (data) => {
 
     const navigation = [
         { name: 'Schedule', href: '/home/schedule', icon: HomeIcon, current: true },
-        { name: 'Class View', href: '/home/class_view', icon: FolderIcon, current: false },
+        { name: 'Class View', href: '/home/class_view', icon: AcademicCapIcon, current: false },
     ]
 
     const tabs = [
@@ -466,10 +467,10 @@ const Home = (data) => {
                     </div>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
                       <span className="inline-flex items-center px-3 py-0.5 mx-2 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 shadow-md shadow-black">
-                        <svg className="-ml-1 mr-1.5 h-2 w-2 text-indigo-400" fill="currentColor" viewBox="0 0 8 8">
+                        <svg className="-ml-1 mr-1.5 h-2 w-2 text-indigo-500 clock__dot" fill="currentColor" viewBox="0 0 8 8">
                           <circle cx={4} cy={4} r={3} />
                         </svg>
-                          <span><Clock format={'HH:mm:ss'} ticking={true} timezone={'Asia/Jakarta'}/> WIB</span>
+                          <span className="font-semibold"><Clock format={'HH:mm:ss'} ticking={true} timezone={'Asia/Jakarta'}/> WIB</span>
                       </span>
                       <button
                       className="bg-white flex justify-center p-1 mx-2 rounded-full text-gray-400 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -482,12 +483,12 @@ const Home = (data) => {
                       >
                         <span className="sr-only">View notifications</span>
                         <span className="flex-shrink-0 inline-block relative">
-                          <BellIcon className="h-6 w-6" aria-hidden="true"/>
+                          <BellIcon className="h-6 w-6 bell__icon" aria-hidden="true"/>
                           {isNewNotif &&
                             <span
                               className={classNames(
                                 'bg-red-500',
-                                'absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white'
+                                'absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white notification__alert'
                               )}
                               aria-hidden="true"
                             />
@@ -578,6 +579,7 @@ const Home = (data) => {
                               <div className="box__description-container">
                                 <div className="box__description-title">Whoops!</div>
                                 <div className="box__description-text">Go to 'Schedule' menu and pick a class</div>
+                                <div className="box__description-text">&copy; 2021-2022 LO MW RR. All Rights Reserved.</div>
                               </div>
                               
                             </div>
