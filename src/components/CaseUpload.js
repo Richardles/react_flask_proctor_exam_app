@@ -20,6 +20,17 @@ const CaseUpload = () => {
             })
     }
 
+    function downloadCase(){
+        var storage = firebase.storage()
+        var url = storage.ref('2110/COMP6232001/BB04/assignment1/case/O222-COMP6232-JF01-00.docx')
+        url.getDownloadURL().then(function(url){
+            var element = document.createElement('a');
+            element.setAttribute('download', url);
+            document.body.appendChild(element);
+            element.click();
+        })
+    }
+
     return (
         <div className="flex justify-center">
             <div className="w-full">
