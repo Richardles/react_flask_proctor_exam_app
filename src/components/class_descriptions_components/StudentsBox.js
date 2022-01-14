@@ -47,7 +47,7 @@ const StudentsBox = (props) => {
                             </p>
                             </div>
                             <div className="hidden md:block">
-                            <div>
+                            {/* <div>
                                 <p className="text-sm text-gray-900">
                                 Born on <time dateTime={student.BirthDate}>{(new Date(student.data.BirthDate)).toDateString()}</time>
                                 </p>
@@ -55,7 +55,7 @@ const StudentsBox = (props) => {
                                 <CheckCircleIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-green-400" aria-hidden="true" />
                                 Present
                                 </p>
-                            </div>
+                            </div> */}
                             </div>
                         </div>
                         </div>

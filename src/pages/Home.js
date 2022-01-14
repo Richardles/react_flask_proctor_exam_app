@@ -4,6 +4,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import { Disclosure, Menu } from '@headlessui/react'
 // import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
 import Loader from "react-loader-spinner";
+import { Audio,Triangle } from  'react-loader-spinner'
 import Clock from 'react-live-clock'
 import {
   FolderIcon,
@@ -24,6 +25,28 @@ import firebase from '../firebase'
 
 const Home = (data) => {
 
+  var pageX = screen.width;
+  var pageY = screen.width;
+
+  function _onMouseMove(e) {
+    let x = e.screenX
+    let y = e.screenY
+    
+    //verticalAxis
+    let yAxis = (pageY/2-y)/pageY*300; 
+    //horizontalAxis
+    x = x / -pageX;
+    let xAxis = -x * 100 - 100;
+    
+    if(document.querySelector('.box__ghost-eyes')){
+      document.querySelector('.box__ghost-eyes').style.transform = 'translate('+ xAxis +'%,-'+ yAxis +'%)'
+
+    }
+    // $('.box__ghost-eyes').css({ 'transform': 'translate('+ xAxis +'%,-'+ yAxis +'%)' }); 
+
+    //console.log('X: ' + xAxis);
+  }
+
     const navigation = [
         { name: 'Schedule', href: '/home/schedule', icon: HomeIcon, current: true },
         { name: 'Class View', href: '/home/class_view', icon: FolderIcon, current: false },
@@ -39,8 +62,9 @@ const Home = (data) => {
     const [classTransactionDetail, setClassTransaction] = useState([]);
     const [isFetchingClassTransaction, setFetchingClassTransaction] = useState(true);
     const [showNotification, setShowNotification] = useState(false)
+    const [isNewNotif, setIsNewNotif] = useState(false)
     const [notificationList, setNotificationList] = useState([])
-    const [showNotificationList, setShowNotificationList] = useState(true)
+    const [showNotificationList, setShowNotificationList] = useState(false)
     const [notificationPopUpData, setNotificationPopUpData] = useState()
     const [proctorPicture, setProctorPicture] = useState()
     const [signOutModalOpen, setSignOutModalOpen] = useState(false)
@@ -59,11 +83,7 @@ const Home = (data) => {
 
     function getNotification(){
       const ref = firebase.database().ref('2110').child('notification')
-      // let notif = {
-      //   title: 'tes',
-      //   content: 'discord'
-      // }
-      // ref.push(notif)
+      
       activeClass = JSON.parse(localStorage.getItem('activeClass'))
       let courseCodeList = []
       if(activeClass){
@@ -79,6 +99,7 @@ const Home = (data) => {
         snapshot.forEach(c => {
           if(courseCodeList.includes(c.key)){
             getLeaf(c)
+            setIsNewNotif(true)
           }
         })
       })
@@ -96,28 +117,29 @@ const Home = (data) => {
         let date = new Date(dateTime[0])
         date.setHours(time[0], time[1], time[2])
         let student = getStudentData(c.ref.path.pieces_[5]);
-        console.log(student)
-        fetch("https://laboratory.binus.ac.id/lapi/api/Account/GetThumbnail?id=" + student.PictureId).then(res => res.blob())
-          .then(data => {
-                const imageObjectURL = URL.createObjectURL(data)
-                let studentData = {
-                    imageUrl: imageObjectURL,
-                    data: student
-                }
-                let temp = {
-                  path: c.ref.path.pieces_,
-                  detail: {
-                    courseCode: c.ref.path.pieces_[2],
-                    className: c.ref.path.pieces_[3],
-                    examType: c.ref.path.pieces_[4],
-                    studentNumber: c.ref.path.pieces_[5],
-                    dateTime: date,
-                  },
-                  student: studentData,
-                  value: c.val()
-                }
-                setNotificationList(notificationList => [...notificationList, temp])
-            })
+        if(student){
+          fetch("https://laboratory.binus.ac.id/lapi/api/Account/GetThumbnail?id=" + student.PictureId).then(res => res.blob())
+            .then(data => {
+                  const imageObjectURL = URL.createObjectURL(data)
+                  let studentData = {
+                      imageUrl: imageObjectURL,
+                      data: student
+                  }
+                  let temp = {
+                    path: c.ref.path.pieces_,
+                    detail: {
+                      courseCode: c.ref.path.pieces_[2],
+                      className: c.ref.path.pieces_[3],
+                      examType: c.ref.path.pieces_[4],
+                      studentNumber: c.ref.path.pieces_[5],
+                      dateTime: date,
+                    },
+                    student: studentData,
+                    value: c.val()
+                  }
+                  setNotificationList(notificationList => [...notificationList, temp])
+              })
+        }
       }
     }
 
@@ -179,19 +201,20 @@ const Home = (data) => {
             }
             setClassTransaction(data)
             setFetchingClassTransaction(false)
+            getNotification()
             localStorage.setItem('activeClass', JSON.stringify(data))
           })
         }else{
           console.log('active class is not empty');
           setClassTransaction(JSON.parse(localStorage.getItem('activeClass')))
           setFetchingClassTransaction(false)
+          getNotification()
         }
-        getNotification()
     }, [])
 
     const [sidebarOpen, setSidebarOpen] = useState(false)
     return (
-        <div className="h-screen flex overflow-hidden bg-gray-100">
+        <div className="h-screen flex overflow-hidden bg-gray-100" onMouseMove={_onMouseMove}>
         <Transition.Root show={sidebarOpen} as={Fragment}>
           <Dialog
             as="div"
@@ -449,15 +472,27 @@ const Home = (data) => {
                           <span><Clock format={'HH:mm:ss'} ticking={true} timezone={'Asia/Jakarta'}/> WIB</span>
                       </span>
                       <button
-                      className="bg-white p-1 mx-2 rounded-full text-gray-400 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      className="bg-white flex justify-center p-1 mx-2 rounded-full text-gray-400 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       onClick={() => {
                         setShowNotificationList(true)
                         getNotification()
+                        setIsNewNotif(false)
                         }
                       }
                       >
                         <span className="sr-only">View notifications</span>
-                        <BellIcon className="h-6 w-6" aria-hidden="true"/>
+                        <span className="flex-shrink-0 inline-block relative">
+                          <BellIcon className="h-6 w-6" aria-hidden="true"/>
+                          {isNewNotif &&
+                            <span
+                              className={classNames(
+                                'bg-red-500',
+                                'absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white'
+                              )}
+                              aria-hidden="true"
+                            />
+                          }
+                        </span>
                       </button>
                       <button
                       className="bg-white p-1 mx-2 rounded-full text-gray-400 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -507,14 +542,47 @@ const Home = (data) => {
                   : data.data === "manage class" ?
                   <div>
                     <div className="flex-col flex h-screen items-center">
-                      <Loader
+                        {/* <Loader
                           type="ThreeDots"
                           color="#0C99F2"
-                          height={80}
-                          width={80}
+                          secondaryColor="#20C4F8"
+                          height={60}
+                          width={60}
                           radius={5000000}
-                        />
-                        <div>Go to 'schedule' menu and pick a class</div>
+                        /> */}
+                        <div className="box">
+                          <div className="box__ghost">
+                            <div className="symbol"></div>
+                            <div className="symbol"></div>
+                            <div className="symbol"></div>
+                            <div className="symbol"></div>
+                            <div className="symbol"></div>
+                            <div className="symbol"></div>
+                            
+                            <div className="box__ghost-container">
+                              <div className="box__ghost-eyes">
+                                <div className="box__eye-left"></div>
+                                <div className="box__eye-right"></div>
+                              </div>
+                              <div className="box__ghost-bottom">
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                              </div>
+                            </div>
+                            <div className="box__ghost-shadow"></div>
+                          </div>
+                            <div className="box__description">
+                              <div className="box__description-container">
+                                <div className="box__description-title">Whoops!</div>
+                                <div className="box__description-text">Go to 'Schedule' menu and pick a class</div>
+                              </div>
+                              
+                            </div>
+                        </div>
+
                     </div>
                   </div>
                   : data.data === "student view" ?
@@ -645,7 +713,8 @@ const Home = (data) => {
                         </div>
                       </div>
                       <ul className="divide-y divide-gray-200 overflow-y-auto">
-                        {notificationList.map((log) => (
+                        {notificationList.sort((a, b)=>a.student.data.Name.localeCompare(b.student.data.Name))
+                        .map((log) => (
                           <li key={log.path} className="px-6 py-5 relative">
                             <div className="group flex justify-between items-center">
                               <a href={` http://localhost:3000/home/schedule/${log.detail.courseCode}+${log.detail.className}/${log.student.data.Number} `} className="-m-1 p-1 block">
@@ -671,7 +740,7 @@ const Home = (data) => {
                               <Menu as="div" className="ml-2 relative inline-block text-left">
                                 {({ showNotificationList }) => (
                                   <>
-                                    <Menu.Button className="group relative w-8 h-8 bg-white rounded-full inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    {/* <Menu.Button className="group relative w-8 h-8 bg-white rounded-full inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                       <span className="sr-only">Open options menu</span>
                                       <span className="flex items-center justify-center h-full w-full rounded-full">
                                         <DotsVerticalIcon
@@ -679,7 +748,7 @@ const Home = (data) => {
                                           aria-hidden="true"
                                         />
                                       </span>
-                                    </Menu.Button>
+                                    </Menu.Button> */}
                                     <Transition
                                       show={showNotificationList}
                                       as={Fragment}
